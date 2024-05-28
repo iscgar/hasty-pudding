@@ -30,16 +30,16 @@ extern "C" {
 static size_t hpc_get_cipher_id(size_t data_bit_size);
 
 /* The backup argument is only used by HPC-tiny, but is provided to every implmentation for consistency */
-static void hpc_tiny_encrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, size_t block_size, uint64_t mask, size_t backup);
-static void hpc_tiny_decrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, size_t block_size, uint64_t mask, size_t backup);
-static void hpc_short_encrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, size_t block_size, uint64_t mask, size_t backup);
-static void hpc_short_decrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, size_t block_size, uint64_t mask, size_t backup);
-static void hpc_medium_encrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, size_t block_size, uint64_t mask, size_t backup);
-static void hpc_medium_decrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, size_t block_size, uint64_t mask, size_t backup);
-static void hpc_long_encrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, size_t block_size, uint64_t mask, size_t backup);
-static void hpc_long_decrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, size_t block_size, uint64_t mask, size_t backup);
-static void hpc_extended_encrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, size_t block_size, uint64_t mask, size_t backup);
-static void hpc_extended_decrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, size_t block_size, uint64_t mask, size_t backup);
+static void hpc_tiny_encrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, const uint8_t *plaintext, uint8_t *o_ciphertext, size_t block_size, uint64_t mask, size_t backup);
+static void hpc_tiny_decrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, const uint8_t *ciphertext, uint8_t *o_plaintext, size_t block_size, uint64_t mask, size_t backup);
+static void hpc_short_encrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, const uint8_t *plaintext, uint8_t *o_ciphertext, size_t block_size, uint64_t mask, size_t backup);
+static void hpc_short_decrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, const uint8_t *ciphertext, uint8_t *o_plaintext, size_t block_size, uint64_t mask, size_t backup);
+static void hpc_medium_encrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, const uint8_t *plaintext, uint8_t *o_ciphertext, size_t block_size, uint64_t mask, size_t backup);
+static void hpc_medium_decrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, const uint8_t *ciphertext, uint8_t *o_plaintext, size_t block_size, uint64_t mask, size_t backup);
+static void hpc_long_encrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, const uint8_t *plaintext, uint8_t *o_ciphertext, size_t block_size, uint64_t mask, size_t backup);
+static void hpc_long_decrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, const uint8_t *ciphertext, uint8_t *o_plaintext, size_t block_size, uint64_t mask, size_t backup);
+static void hpc_extended_encrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, const uint8_t *plaintext, uint8_t *o_ciphertext, size_t block_size, uint64_t mask, size_t backup);
+static void hpc_extended_decrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, const uint8_t *ciphertext, uint8_t *o_plaintext, size_t block_size, uint64_t mask, size_t backup);
 
 int hpc_init(struct HpcState *state, const uint8_t *key, size_t key_bit_size)
 {
@@ -176,7 +176,7 @@ int hpc_encrypt(struct HpcState *state, const uint8_t *plaintext, uint8_t *o_cip
 
         const size_t cipher_id = hpc_get_cipher_id(data_bit_size);
 
-        void (*enc)(uint64_t *, const uint64_t *, const uint64_t *, size_t, uint64_t, size_t);
+        void (*enc)(uint64_t *, const uint64_t *, const uint64_t *, const uint8_t *, uint8_t *, size_t, uint64_t, size_t);
 
         switch (cipher_id)
         {
@@ -197,7 +197,8 @@ int hpc_encrypt(struct HpcState *state, const uint8_t *plaintext, uint8_t *o_cip
             break;
 
         case HPC_CIPHER_ID_EXTENDED:
-            return false; // TODO: implement
+            enc = hpc_extended_encrypt;
+            break;
 
         default:
             return false;
@@ -252,7 +253,10 @@ int hpc_encrypt(struct HpcState *state, const uint8_t *plaintext, uint8_t *o_cip
             }
         }
 
-        s[l64 - 1] &= mask;
+        if (data_bit_size < 512)
+        {
+            s[l64 - 1] &= mask;
+        }
 
 #if defined(HPC_USE_SINGLE_KX)
         const uint64_t *KX = state->KX;
@@ -269,16 +273,22 @@ int hpc_encrypt(struct HpcState *state, const uint8_t *plaintext, uint8_t *o_cip
                 s[j] += KX[(data_bit_size + j) & 0xff];
             }
 
-            s[l64 - 1] &= mask;
+            if (data_bit_size < 512)
+            {
+                s[l64 - 1] &= mask;
+            }
 
-            (*enc)(s, t, KX, data_bit_size, mask, i);
+            (*enc)(s, t, KX, plaintext, o_ciphertext, data_bit_size, mask, i);
 
             for (size_t ki = 0, j = 0; j < HPC_ROUND_COUNT; ki += 64, ++j)
             {
                 s[j] += KX[(data_bit_size + HPC_ROUND_COUNT + j) & 0xff];
             }
 
-            s[l64 - 1] &= mask;
+            if (data_bit_size < 512)
+            {
+                s[l64 - 1] &= mask;
+            }
         }
 
         for (size_t i = 0, j = 0; i < word_limit; ++j)
@@ -317,7 +327,7 @@ int hpc_decrypt(struct HpcState *state, const uint8_t *ciphertext, uint8_t *o_pl
 
         const size_t cipher_id = hpc_get_cipher_id(data_bit_size);
 
-        void (*dec)(uint64_t *, const uint64_t *, const uint64_t *, size_t, uint64_t, size_t);
+        void (*dec)(uint64_t *, const uint64_t *, const uint64_t *, const uint8_t *, uint8_t *, size_t, uint64_t, size_t);
 
         switch (cipher_id)
         {
@@ -338,7 +348,8 @@ int hpc_decrypt(struct HpcState *state, const uint8_t *ciphertext, uint8_t *o_pl
             break;
 
         case HPC_CIPHER_ID_EXTENDED:
-            return false; // TODO: implement
+            dec = hpc_extended_decrypt;
+            break;
 
         default:
             return false;
@@ -393,7 +404,10 @@ int hpc_decrypt(struct HpcState *state, const uint8_t *ciphertext, uint8_t *o_pl
             }
         }
 
-        s[l64 - 1] &= mask;
+        if (data_bit_size < 512)
+        {
+            s[l64 - 1] &= mask;
+        }
 
 #if defined(HPC_USE_SINGLE_KX)
         const uint64_t *KX = state->KX;
@@ -408,9 +422,12 @@ int hpc_decrypt(struct HpcState *state, const uint8_t *ciphertext, uint8_t *o_pl
                 s[j] -= KX[(data_bit_size + HPC_ROUND_COUNT + j) & 0xff];
             }
 
-            s[l64 - 1] &= mask;
+            if (data_bit_size < 512)
+            {
+                s[l64 - 1] &= mask;
+            }
 
-            (*dec)(s, t, KX, data_bit_size, mask, i);
+            (*dec)(s, t, KX, ciphertext, o_plaintext, data_bit_size, mask, i);
 
             for (size_t ki = 0, j = 0; j < HPC_ROUND_COUNT; ki += 64, ++j)
             {
@@ -418,7 +435,10 @@ int hpc_decrypt(struct HpcState *state, const uint8_t *ciphertext, uint8_t *o_pl
             }
 
             s[0] -= (uint64_t)i;
-            s[l64 - 1] &= mask;
+            if (data_bit_size < 512)
+            {
+                s[l64 - 1] &= mask;
+            }
         }
 
         for (size_t i = 0, j = 0; i < word_limit; ++j)
@@ -481,9 +501,10 @@ static uint8_t hpc_fib_fold(const uint64_t N[2])
     return (uint8_t)(n & 1);
 }
 
-static void hpc_tiny_encrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, size_t block_size, uint64_t mask, size_t backup)
+static void hpc_tiny_encrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, const uint8_t *plaintext, uint8_t *o_ciphertext, size_t block_size, uint64_t mask, size_t backup)
 {
     uint64_t s0 = state[0];
+    (void)plaintext, (void)o_ciphertext;
 
     switch (block_size)
     {
@@ -493,11 +514,11 @@ static void hpc_tiny_encrypt(uint64_t *state, const uint64_t *spice, const uint6
     case 4:
         {
             uint64_t tmp[2] = {
-                KX[(block_size << 1) + 16] + KX[128] + backup,
+                KX[(block_size << 1) + 16] + KX[128] + (uint64_t)backup,
                 KX[(block_size << 1) + 17] + KX[129],
             };
 
-            hpc_medium_encrypt(tmp, spice, KX, 128, UINT64_C(0xffffffffffffffff), 0);
+            hpc_medium_encrypt(tmp, spice, KX, NULL, NULL, 128, UINT64_C(0xffffffffffffffff), 0);
 
             tmp[0] += KX[136];
             tmp[1] += KX[137];
@@ -569,9 +590,9 @@ static void hpc_tiny_encrypt(uint64_t *state, const uint64_t *spice, const uint6
                 tmp[i] = KX[(block_size << 1) + 16 + i] + KX[(bs_base + i)];
             }
             tmp[HPC_ROUND_COUNT - 1] = KX[(block_size << 1) + 16 + l64] + KX[(bs_base + HPC_ROUND_COUNT - 1)];
-            tmp[0] += backup;
+            tmp[0] += (uint64_t)backup;
 
-            hpc_long_encrypt(tmp, spice, KX, tmp_bs, UINT64_C(0xffffffffffffffff), 0);
+            hpc_long_encrypt(tmp, spice, KX, NULL, NULL, tmp_bs, UINT64_C(0xffffffffffffffff), 0);
 
             for (size_t i = 0; i < (tmp_bs >> 6) - 1; ++i)
             {
@@ -604,7 +625,7 @@ static void hpc_tiny_encrypt(uint64_t *state, const uint64_t *spice, const uint6
             const size_t LBH = (block_size + 1) >> 1;
 
             uint64_t tmp[HPC_ROUND_COUNT + 2] = {
-                (spice[0] ^ KX[(block_size << 2) + 16]) + KX[0] + backup,
+                (spice[0] ^ KX[(block_size << 2) + 16]) + KX[0] + (uint64_t)backup,
                 (spice[1] ^ KX[(block_size << 2) + 17]) + KX[1],
                 (spice[2] ^ KX[(block_size << 2) + 18]) + KX[2],
                 (spice[3] ^ KX[(block_size << 2) + 19]) + KX[3],
@@ -615,7 +636,7 @@ static void hpc_tiny_encrypt(uint64_t *state, const uint64_t *spice, const uint6
             };
             const uint64_t zspice[HPC_ROUND_COUNT] = { 0 };
 
-            hpc_long_encrypt(tmp, zspice, KX, 512, UINT64_C(0xffffffffffffffff), 0);
+            hpc_long_encrypt(tmp, zspice, KX, NULL, NULL, 512, UINT64_C(0xffffffffffffffff), 0);
 
             for (size_t i = 0; i < HPC_ROUND_COUNT; ++i)
             {
@@ -686,9 +707,10 @@ static const uint64_t Permai[16] = {
 #define PERM1I  UINT64_C(0xc3610a492b8dfe57)   /* inverse of PERM1 */
 #define PERM2I  UINT64_C(0x5c62e738d9a10fb4)   /* inverse of PERM2 */
 
-static void hpc_tiny_decrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, size_t block_size, uint64_t mask, size_t backup)
+static void hpc_tiny_decrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, const uint8_t *ciphertext, uint8_t *o_plaintext, size_t block_size, uint64_t mask, size_t backup)
 {
     uint64_t s0 = state[0];
+    (void)ciphertext, (void)o_plaintext;
 
     switch (block_size)
     {
@@ -698,11 +720,11 @@ static void hpc_tiny_decrypt(uint64_t *state, const uint64_t *spice, const uint6
     case 4:
         {
             uint64_t tmp[2] = {
-                KX[(block_size << 1) + 16] + KX[128] + backup,
+                KX[(block_size << 1) + 16] + KX[128] + (uint64_t)backup,
                 KX[(block_size << 1) + 17] + KX[129],
             };
 
-            hpc_medium_encrypt(tmp, spice, KX, 128, UINT64_C(0xffffffffffffffff), 0);
+            hpc_medium_encrypt(tmp, spice, KX, NULL, NULL, 128, UINT64_C(0xffffffffffffffff), 0);
 
             tmp[0] += KX[136];
             tmp[1] += KX[137];
@@ -767,9 +789,9 @@ static void hpc_tiny_decrypt(uint64_t *state, const uint64_t *spice, const uint6
                 tmp[i] = KX[(block_size << 1) + 16 + i] + KX[(bs_base + i)];
             }
             tmp[HPC_ROUND_COUNT - 1] = KX[(block_size << 1) + 16 + l64] + KX[(bs_base + HPC_ROUND_COUNT - 1)];
-            tmp[0] += backup;
+            tmp[0] += (uint64_t)backup;
 
-            hpc_long_encrypt(tmp, spice, KX, tmp_bs, UINT64_C(0xffffffffffffffff), 0);
+            hpc_long_encrypt(tmp, spice, KX, NULL, NULL, tmp_bs, UINT64_C(0xffffffffffffffff), 0);
 
             for (size_t i = 0; i < (tmp_bs >> 6) - 1; ++i)
             {
@@ -801,7 +823,7 @@ static void hpc_tiny_decrypt(uint64_t *state, const uint64_t *spice, const uint6
             const size_t LBH = (block_size + 1) >> 1;
 
             uint64_t tmp[HPC_ROUND_COUNT + 2] = {
-                (spice[0] ^ KX[(block_size << 2) + 16]) + KX[0] + backup,
+                (spice[0] ^ KX[(block_size << 2) + 16]) + KX[0] + (uint64_t)backup,
                 (spice[1] ^ KX[(block_size << 2) + 17]) + KX[1],
                 (spice[2] ^ KX[(block_size << 2) + 18]) + KX[2],
                 (spice[3] ^ KX[(block_size << 2) + 19]) + KX[3],
@@ -812,7 +834,7 @@ static void hpc_tiny_decrypt(uint64_t *state, const uint64_t *spice, const uint6
             };
             const uint64_t zspice[HPC_ROUND_COUNT] = { 0 };
 
-            hpc_long_encrypt(tmp, zspice, KX, 512, UINT64_C(0xffffffffffffffff), 0);
+            hpc_long_encrypt(tmp, zspice, KX, NULL, NULL, 512, UINT64_C(0xffffffffffffffff), 0);
 
             for (size_t i = 0; i < HPC_ROUND_COUNT; ++i)
             {
@@ -879,7 +901,7 @@ static const uint64_t Permb[16] = {
    0x0FF8EC6D31BEB5CC - 14,  0xEB64749A47DFDFB9 - 15
 };
 
-static void hpc_short_encrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, size_t block_size, uint64_t mask, size_t backup)
+static void hpc_short_encrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, const uint8_t *plaintext, uint8_t *o_ciphertext, size_t block_size, uint64_t mask, size_t backup)
 {
     const size_t LBH = (block_size + 1) >> 1;
     const size_t LBQ = (LBH + 1) >> 1;
@@ -887,7 +909,7 @@ static void hpc_short_encrypt(uint64_t *state, const uint64_t *spice, const uint
     const size_t GAP = 64 - block_size;
 
     uint64_t s0 = state[0];
-    (void)backup;
+    (void)backup, (void)plaintext, (void)o_ciphertext;
 
     for (size_t ri = 0; ri < HPC_ROUND_COUNT; ++ri)
     {
@@ -941,7 +963,7 @@ static const uint64_t Permbi[16] = {
    0x158D9554F7B46BCE - 9,   0xA784D9045190CFEF - 3
 };
 
-static void hpc_short_decrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, size_t block_size, uint64_t mask, size_t backup)
+static void hpc_short_decrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, const uint8_t *ciphertext, uint8_t *o_plaintext, size_t block_size, uint64_t mask, size_t backup)
 {
     const size_t LBH = (block_size + 1) >> 1;
     const size_t LBQ = (LBH + 1) >> 1;
@@ -949,7 +971,7 @@ static void hpc_short_decrypt(uint64_t *state, const uint64_t *spice, const uint
     const size_t GAP = 64 - block_size;
 
     uint64_t s0 = state[0];
-    (void)backup;
+    (void)backup, (void)ciphertext, (void)o_plaintext;
 
     for (size_t ri = HPC_ROUND_COUNT; ri-- > 0; )
     {
@@ -992,10 +1014,10 @@ static void hpc_short_decrypt(uint64_t *state, const uint64_t *spice, const uint
     state[0] = s0;
 }
 
-static void hpc_medium_encrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, size_t block_size, uint64_t mask, size_t backup)
+static void hpc_medium_encrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, const uint8_t *plaintext, uint8_t *o_ciphertext, size_t block_size, uint64_t mask, size_t backup)
 {
     uint64_t s0 = state[0], s1 = state[1];
-    (void)backup;
+    (void)backup, (void)plaintext, (void)o_ciphertext;
 
     for (size_t ri = 0; ri < HPC_ROUND_COUNT; ++ri)
     {
@@ -1048,10 +1070,10 @@ static void hpc_medium_encrypt(uint64_t *state, const uint64_t *spice, const uin
     state[1] = s1;
 }
 
-static void hpc_medium_decrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, size_t block_size, uint64_t mask, size_t backup)
+static void hpc_medium_decrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, const uint8_t *ciphertext, uint8_t *o_plaintext, size_t block_size, uint64_t mask, size_t backup)
 {
     uint64_t s0 = state[0], s1 = state[1];
-    (void)backup;
+    (void)backup, (void)ciphertext, (void)o_plaintext;
 
     for (size_t ri = HPC_ROUND_COUNT; ri-- > 0; )
     {
@@ -1109,11 +1131,11 @@ static void hpc_medium_decrypt(uint64_t *state, const uint64_t *spice, const uin
     state[1] = s1;
 }
 
-static void hpc_long_encrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, size_t block_size, uint64_t mask, size_t backup)
+static void hpc_long_encrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, const uint8_t *plaintext, uint8_t *o_ciphertext, size_t block_size, uint64_t mask, size_t backup)
 {
     uint64_t s0 = state[0], s1 = state[1], s2 = state[2], s3 = state[3];
     uint64_t s4 = state[4], s5 = state[5], s6 = state[6], s7 = state[7];
-    (void)backup;
+    (void)backup, (void)plaintext, (void)o_ciphertext;
 
     for (size_t ri = 0; ri < HPC_ROUND_COUNT; ++ri)
     {
@@ -1208,11 +1230,11 @@ static void hpc_long_encrypt(uint64_t *state, const uint64_t *spice, const uint6
     state[7] = s7;
 }
 
-static void hpc_long_decrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, size_t block_size, uint64_t mask, size_t backup)
+static void hpc_long_decrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, const uint8_t *ciphertext, uint8_t *o_plaintext, size_t block_size, uint64_t mask, size_t backup)
 {
     uint64_t s0 = state[0], s1 = state[1], s2 = state[2], s3 = state[3];
     uint64_t s4 = state[4], s5 = state[5], s6 = state[6], s7 = state[7];
-    (void)backup;
+    (void)backup, (void)ciphertext, (void)o_plaintext;
 
     for (size_t ri = HPC_ROUND_COUNT; ri-- > 0; )
     {
@@ -1312,28 +1334,456 @@ static void hpc_long_decrypt(uint64_t *state, const uint64_t *spice, const uint6
     state[7] = s7;
 }
 
-static void hpc_extended_encrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, size_t block_size, uint64_t mask, size_t backup);
-static void hpc_extended_decrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, size_t block_size, uint64_t mask, size_t backup);
+static void hpc_extended_stir(uint64_t *s, const uint64_t *spice, const uint64_t *KX, size_t ri, uint64_t mask)
+{
+    uint64_t t = s[0] & 255, k = KX[t], kk = KX[(t + (ri << 2) + 1) & 255], tt;
+
+    s[3] += s[7];
+    s[5] ^= s[7];
+    s[1] += k;
+    s[2] ^= k;
+    s[4] += kk;
+    s[6] ^= kk;
+    s[4] ^= s[1];
+    s[5] += s[2];
+    s[0] ^= (s[5] >> 13);
+    s[1] -= (s[6] >> 22);
+    s[2] ^= (s[7] << 7);
+    s[7] ^= (s[6] << 9);
+    s[7] += s[0];
+    s[4] -= s[0];
+
+    t = (s[1] & 31);
+    tt = (s[1] >> t);
+    s[6] ^= tt;
+    s[7] += tt;
+
+    tt = (s[2] << t);
+    s[3] += tt;
+    s[5] ^= tt;
+    tt = (s[4] >> t);
+    s[2] -= tt;
+    s[5] += tt;
+
+    if (ri == 1)
+    {
+        s[0] += spice[0];
+        s[1] ^= spice[1];
+        s[2] -= spice[2];
+        s[3] ^= spice[3];
+        s[4] += spice[4];
+        s[5] ^= spice[5];
+        s[6] -= spice[6];
+        s[7] ^= spice[7];
+    }
+
+    s[7] -= s[3];
+    s[7] &= mask;
+    s[1] ^= (s[7] >> 11);
+    s[6] += s[3];
+    s[0] ^= s[6];
+
+    // The next sequence exchanges the even-numbered bit positions in s2 and s5.
+    // S3 and s0 are modified as targets of opportunity.
+    t = s[2] ^ s[5];
+    s[3] -= t;
+    t &= 0x5555555555555555;
+    s[2] ^= t;
+    s[5] ^= t;
+    s[0] += t;
+
+    t = (s[4] << 9);
+    s[6] -= t;
+    s[1] += t;
+}
+
+static void hpc_extended_stir_inverse(uint64_t *s, const uint64_t *spice, const uint64_t *KX, size_t ri, uint64_t mask)
+{
+    uint64_t t, tt, k, kk;
+
+    t = s[4] << 9;
+    s[1] -= t;
+    s[6] += t;
+
+    t = s[2] ^ s[5];
+    s[3] += t;
+    t &= 0x5555555555555555;
+    s[2] ^= t;
+    s[5] ^= t;
+    s[0] -= t;
+
+    s[0] ^= s[6];
+    s[6] -= s[3];
+    s[1] ^= (s[7] >> 11);
+    s[7] += s[3];
+
+    if (ri == 1)
+    {
+        s[0] -= spice[0];
+        s[1] ^= spice[1];
+        s[2] += spice[2];
+        s[3] ^= spice[3];
+        s[4] -= spice[4];
+        s[5] ^= spice[5];
+        s[6] += spice[6];
+        s[7] ^= spice[7];
+    }
+
+    t = (s[1] & 31);
+    tt = (s[4] >> t);
+    s[5] -= tt;
+    s[2] += tt;
+    tt = (s[2] << t);
+    s[5] ^= tt;
+    s[3] -= tt;
+
+    tt = (s[1] >> t);
+    s[6] ^= tt;
+    s[7] -= tt;
+
+    s[4] += s[0];
+    s[7] -= s[0];
+    s[7] ^= (s[6] << 9);
+    s[7] &= mask;
+    s[2] ^= (s[7] << 7);
+    s[1] += (s[6] >> 22);
+    s[0] ^= (s[5] >> 13);
+    s[5] -= s[2];
+    s[4] ^= s[1];
+
+    t = s[0] & 255;
+    k = KX[t];
+    kk = KX[(t + (ri << 2) + 1) & 255];
+
+    s[6] ^= kk;
+    s[4] -= kk;
+    s[2] ^= k;
+    s[1] -= k;
+    s[5] ^= s[7];
+    s[3] -= s[7];
+}
+
+static const uint32_t Swizpoly[] = {
+    // These are commented out because they'll never be used, since 513/64
+    // rounded up is 9, leading to QMSK that is no less than 15, and as such
+    // 0x13 is the minimal number that can be used
+    /* 0, 3, 7, 0xb, */
+    0x13, 0x25, 0x43, 0x83, 0x11d, 0x211, 0x409,
+    0x805, 0x1053, 0x201b, 0x402b, UINT32_C(0x8003), UINT32_C(0x1002d),
+    UINT32_C(0x20009), UINT32_C(0x40027), UINT32_C(0x80027), UINT32_C(0x100009),
+    UINT32_C(0x200005), UINT32_C(0x400003), UINT32_C(0x800021), UINT32_C(0x100001b),
+    UINT32_C(0x2000009), UINT32_C(0x4000047), UINT32_C(0x8000027), UINT32_C(0x10000009),
+    UINT32_C(0x20000005), UINT32_C(0x40000053), UINT32_C(0x80000009)
+};
+
+static void hpc_extended_encrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, const uint8_t *plaintext, uint8_t *o_ciphertext, size_t block_size, uint64_t mask, size_t backup)
+{
+    const size_t LWD = (block_size + 63) / 64;
+    uint32_t qmask = (uint32_t)(LWD - 1);
+    (void)backup;
+
+    // Calculate QMSK to be `pow(2, ceil(log2(LWD))) - 1` using the bit-twiddling hack from
+    // https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+    qmask |= qmask >> 1;
+    qmask |= qmask >> 2;
+    qmask |= qmask >> 4;
+    qmask |= qmask >> 8;
+    qmask |= qmask >> 16;
+
+    // Pre-mixing step. The spec claims we should run this 4 times with 0..3, but
+    // the test vectors disagree, so we deviate and run only 3 times with 0..2
+    for (size_t i = 0; i < 3; ++i)
+    {
+        hpc_extended_stir(state, spice, KX, i, UINT64_C(0xffffffffffffffff));
+    }
+
+    uint64_t s7_copy = state[7];
+
+    // First pass
+    for (size_t i = HPC_ROUND_COUNT, j = i * sizeof(uint64_t); i < LWD; ++i, j += sizeof(uint64_t))
+    {
+        const uint64_t lmask = (i == LWD - 1) ? mask : UINT64_C(0xffffffffffffffff);
+        const size_t byte_limit = (~lmask != 0) ? ((block_size & 63) + CHAR_BIT - 1) / CHAR_BIT : sizeof(uint64_t);
+
+        state[7] = plaintext[j];
+        for (size_t bi = 1, sh = CHAR_BIT; bi < byte_limit; ++bi, sh += CHAR_BIT)
+        {
+            state[7] |= ((uint64_t)plaintext[j + bi]) << sh;
+        }
+
+        hpc_extended_stir(state, spice, KX, 0, lmask);
+
+        for (size_t bi = 0, sh = 0; bi < byte_limit; ++bi, sh += CHAR_BIT)
+        {
+            o_ciphertext[j + bi] = (state[7] >> sh) & 0xff;
+        }
+    }
+
+    // First intermission
+    state[7] = s7_copy;
+    hpc_extended_stir(state, spice, KX, 0, UINT64_C(0xffffffffffffffff));
+    state[0] += (uint64_t)block_size;
+    // The spec claims this should run 3 times with 0..2, but the test vectors
+    // disagree, so we deviate and run only 2 times with 0..1
+    for (size_t i = 0; i < 2; ++i)
+    {
+        hpc_extended_stir(state, spice, KX, i, UINT64_C(0xffffffffffffffff));
+    }
+    state[0] += (uint64_t)block_size;
+    s7_copy = state[7];
+
+    // Second pass
+    for (uint32_t q = 1; q != 0; q = ((q * 5) + 1) & qmask)
+    {
+        if (q < HPC_ROUND_COUNT || q >= LWD)
+        {
+            continue;
+        }
+
+        const uint64_t lmask = (q == LWD - 1) ? mask : UINT64_C(0xffffffffffffffff);
+        const size_t byte_limit = (~lmask != 0) ? ((block_size & 63) + CHAR_BIT - 1) / CHAR_BIT : sizeof(uint64_t);
+        const size_t j = (size_t)q * sizeof(uint64_t);
+
+        state[7] = o_ciphertext[j];
+        for (size_t bi = 1, sh = CHAR_BIT; bi < byte_limit; ++bi, sh += CHAR_BIT)
+        {
+            state[7] |= ((uint64_t)o_ciphertext[j + bi]) << sh;
+        }
+
+        hpc_extended_stir(state, spice, KX, 0, lmask);
+
+        for (size_t bi = 0, sh = 0; bi < byte_limit; ++bi, sh += CHAR_BIT)
+        {
+            o_ciphertext[j + bi] = (state[7] >> sh) & 0xff;
+        }
+    }
+
+    // Second intermission
+    state[7] = s7_copy;
+
+    hpc_extended_stir(state, spice, KX, 1, UINT64_C(0xffffffffffffffff));
+    state[0] += (uint64_t)block_size;
+    // The spec claims this should run 3 times with 0..2, but the test vectors
+    // disagree, so we deviate and run only 2 times with 0..1
+    for (size_t i = 0; i < 2; ++i)
+    {
+        hpc_extended_stir(state, spice, KX, i, UINT64_C(0xffffffffffffffff));
+    }
+    state[0] += (uint64_t)block_size;
+    s7_copy = state[7];
+
+    // find the correct Swizpoly number
+    uint32_t swz = 0;
+    for (size_t i = 0; i < (sizeof(Swizpoly) / sizeof(Swizpoly[0])); ++i)
+    {
+        if (Swizpoly[i] > qmask)
+        {
+            swz = Swizpoly[i];
+            break;
+        }
+    }
+
+    // Third pass
+    qmask = (qmask >> 1) + 1;
+    for (uint32_t q = 2; q != 1; q = (q << 1) ^ ((q & qmask) ? swz : 0))
+    {
+        if (q < HPC_ROUND_COUNT || q >= LWD)
+        {
+            continue;
+        }
+
+        const uint64_t lmask = (q == LWD - 1) ? mask : UINT64_C(0xffffffffffffffff);
+        const size_t byte_limit = (~lmask != 0) ? ((block_size & 63) + CHAR_BIT - 1) / CHAR_BIT : sizeof(uint64_t);
+        const size_t j = (size_t)q * sizeof(uint64_t);
+
+        state[7] = o_ciphertext[j];
+        for (size_t bi = 1, sh = CHAR_BIT; bi < byte_limit; ++bi, sh += CHAR_BIT)
+        {
+            state[7] |= ((uint64_t)o_ciphertext[j + bi]) << sh;
+        }
+
+        hpc_extended_stir(state, spice, KX, 0, lmask);
+
+        for (size_t bi = 0, sh = 0; bi < byte_limit; ++bi, sh += CHAR_BIT)
+        {
+            o_ciphertext[j + bi] = (state[7] >> sh) & 0xff;
+        }
+    }
+
+    // Finale
+    state[7] = s7_copy;
+    hpc_extended_stir(state, spice, KX, 0, UINT64_C(0xffffffffffffffff));
+    for (size_t i = 0; i < 3; ++i)
+    {
+        hpc_extended_stir(state, spice, KX, i, UINT64_C(0xffffffffffffffff));
+    }
+}
+
+static void hpc_extended_decrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, const uint8_t *ciphertext, uint8_t *o_plaintext, size_t block_size, uint64_t mask, size_t backup)
+{
+    const size_t LWD = (block_size + 63) / 64;
+    uint32_t qmask = (uint32_t)(LWD - 1);
+    (void)backup;
+
+    // Calculate QMSK to be `pow(2, ceil(log2(LWD))) - 1` using the bit-twiddling hack from
+    // https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+    qmask |= qmask >> 1;
+    qmask |= qmask >> 2;
+    qmask |= qmask >> 4;
+    qmask |= qmask >> 8;
+    qmask |= qmask >> 16;
+
+    // Finale inverse
+    for (size_t i = 3; i-- > 0; )
+    {
+        hpc_extended_stir_inverse(state, spice, KX, i, UINT64_C(0xffffffffffffffff));
+    }
+    hpc_extended_stir_inverse(state, spice, KX, 0, UINT64_C(0xffffffffffffffff));
+
+    // find the correct Swizpoly number
+    uint32_t swz = 0;
+    for (size_t i = 0; i < (sizeof(Swizpoly) / sizeof(Swizpoly[0])); ++i)
+    {
+        if (Swizpoly[i] > qmask)
+        {
+            swz = Swizpoly[i];
+            break;
+        }
+    }
+
+    uint64_t s7_copy = state[7];
+
+    // Third pass inverse
+    swz >>= 1;
+    for (uint32_t q = swz; q != 1; q = (q >> 1) ^ ((q & 1) ? swz : 0))
+    {
+        if (q < HPC_ROUND_COUNT || q >= LWD)
+        {
+            continue;
+        }
+
+        const uint64_t lmask = (q == LWD - 1) ? mask : UINT64_C(0xffffffffffffffff);
+        const size_t byte_limit = (~lmask != 0) ? ((block_size & 63) + CHAR_BIT - 1) / CHAR_BIT : sizeof(uint64_t);
+        const size_t j = (size_t)q * sizeof(uint64_t);
+
+        state[7] = ciphertext[j];
+        for (size_t bi = 1, sh = CHAR_BIT; bi < byte_limit; ++bi, sh += CHAR_BIT)
+        {
+            state[7] |= ((uint64_t)ciphertext[j + bi]) << sh;
+        }
+
+        hpc_extended_stir_inverse(state, spice, KX, 0, lmask);
+
+        for (size_t bi = 0, sh = 0; bi < byte_limit; ++bi, sh += CHAR_BIT)
+        {
+            o_plaintext[j + bi] = (state[7] >> sh) & 0xff;
+        }
+    }
+
+    // Second intermission inverse
+    state[7] = s7_copy;
+    state[0] -= (uint64_t)block_size;
+    for (size_t i = 2; i-- > 0; )
+    {
+        hpc_extended_stir_inverse(state, spice, KX, i, UINT64_C(0xffffffffffffffff));
+    }
+    state[0] -= (uint64_t)block_size;
+    hpc_extended_stir_inverse(state, spice, KX, 1, UINT64_C(0xffffffffffffffff));
+    s7_copy = state[7];
+
+    // Second pass inverse
+    for (uint32_t q = UINT32_C(0x33333333) & qmask; q != 0; q = ((q - 1) * UINT32_C(0xcccccccd)) & qmask)
+    {
+        if (q < HPC_ROUND_COUNT || q >= LWD)
+        {
+            continue;
+        }
+
+        const uint64_t lmask = (q == LWD - 1) ? mask : UINT64_C(0xffffffffffffffff);
+        const size_t byte_limit = (~lmask != 0) ? ((block_size & 63) + CHAR_BIT - 1) / CHAR_BIT : sizeof(uint64_t);
+        const size_t j = (size_t)q * sizeof(uint64_t);
+
+        state[7] = o_plaintext[j];
+        for (size_t bi = 1, sh = CHAR_BIT; bi < byte_limit; ++bi, sh += CHAR_BIT)
+        {
+            state[7] |= ((uint64_t)o_plaintext[j + bi]) << sh;
+        }
+
+        hpc_extended_stir_inverse(state, spice, KX, 0, lmask);
+
+        for (size_t bi = 0, sh = 0; bi < byte_limit; ++bi, sh += CHAR_BIT)
+        {
+            o_plaintext[j + bi] = (state[7] >> sh) & 0xff;
+        }
+    }
+
+    // First intermission inverse
+    state[7] = s7_copy;
+    state[0] -= (uint64_t)block_size;
+    for (size_t i = 2; i-- > 0; )
+    {
+        hpc_extended_stir_inverse(state, spice, KX, i, UINT64_C(0xffffffffffffffff));
+    }
+    state[0] -= (uint64_t)block_size;
+    hpc_extended_stir_inverse(state, spice, KX, 0, UINT64_C(0xffffffffffffffff));
+    s7_copy = state[7];
+
+    // First pass inverse
+    for (size_t i = LWD - 1, j = i * sizeof(uint64_t); i >= HPC_ROUND_COUNT; --i, j -= sizeof(uint64_t))
+    {
+        const uint64_t lmask = (i == LWD - 1) ? mask : UINT64_C(0xffffffffffffffff);
+        const size_t byte_limit = (~lmask != 0) ? ((block_size & 63) + CHAR_BIT - 1) / CHAR_BIT : sizeof(uint64_t);
+
+        state[7] = o_plaintext[j];
+        for (size_t bi = 1, sh = CHAR_BIT; bi < byte_limit; ++bi, sh += CHAR_BIT)
+        {
+            state[7] |= ((uint64_t)o_plaintext[j + bi]) << sh;
+        }
+
+        hpc_extended_stir_inverse(state, spice, KX, 0, lmask);
+
+        for (size_t bi = 0, sh = 0; bi < byte_limit; ++bi, sh += CHAR_BIT)
+        {
+            o_plaintext[j + bi] = (state[7] >> sh) & 0xff;
+        }
+    }
+
+    state[7] = s7_copy;
+
+    // Pre-mixing inverse
+    for (size_t i = 3; i-- > 0; )
+    {
+        hpc_extended_stir_inverse(state, spice, KX, i, UINT64_C(0xffffffffffffffff));
+    }
+}
 
 static size_t hpc_get_cipher_id(size_t data_bit_size)
 {
-    if (data_bit_size >= 0 && data_bit_size <= 35)
+    if (data_bit_size <= 35)
     {
         return HPC_CIPHER_ID_TINY;
     }
-    if (data_bit_size >= 36 && data_bit_size <= 64)
+    if (data_bit_size <= 64)
     {
         return HPC_CIPHER_ID_SHORT;
     }
-    if (data_bit_size >= 65 && data_bit_size <= 128)
+    if (data_bit_size <= 128)
     {
         return HPC_CIPHER_ID_MEDIUM;
     }
-    if (data_bit_size >= 129 && data_bit_size <= 512)
+    if (data_bit_size <= 512)
     {
         return HPC_CIPHER_ID_LONG;
     }
-    return HPC_CIPHER_ID_EXTENDED;
+    // While in theory HPC-extended supports arbitrary lengths,
+    // in reality it's unlikely that anyone would use a larger
+    // block size, and this restriction simplifies the code
+    if (data_bit_size <= UINT64_C(137438954048))
+    {
+        return HPC_CIPHER_ID_EXTENDED;
+    }
+
+    return -1;
 }
 
 #ifdef __cplusplus
