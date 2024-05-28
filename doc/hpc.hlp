@@ -1,0 +1,254 @@
+Operating instructions for the Hasty Pudding Cipher.
+
+/*  The Hasty Pudding Cipher                          */
+/*  Rich Schroeppel   June 1998                       */
+/*  This cipher is in the public domain.              */
+/*  You are free to use it or modify it as you wish.  */
+/*                                                    */
+/*  Caution:  This is experimental code.              */
+/*  The user interface is somewhat confusing, and     */
+/*  you might not be encrypting what you want to,     */
+/*  perhaps with the wrong key.  There is no          */
+/*  checking of return codes, so file errors will     */
+/*  go unnoticed.  A proper program would erase       */
+/*  the input file.  This program hasn't been tested  */
+/*  enough to be sure that an encrypted file will     */
+/*  decrypt properly.  The Hasty Pudding Cipher has   */
+/*  not existed long enough to receive significant    */
+/*  cryptographic scrutiny.  Your command line input  */
+/*  (including any key that you type) is available    */
+/*  for anyone else on your machine to examine with   */
+/*  ps.                                               */
+
+The user interface is a throw-together for hacking with the cipher.
+It doesn't check for "user error".  There's no checking for file-not-
+found etc.  (If you are lucky, the program will crash; if you are
+unlucky it will encrypt something important in a key known only to
+God.)
+
+The Hasty Pudding Cipher is a block cipher.  It accepts keys of any
+number of bits, and encrypts blocks of any number of bits (even
+fractional bits) into blocks of the same size.  The no-ciphertext-
+expansion feature offers something new in ciphering.  There is a
+secondary 512-bit key called the *spice* which can be changed
+instantly, after every encryption if you want.  Concealment of the
+spice is optional: All or part of it may be revealed, and the cipher
+is still secure.  The Hasty Pudding Cipher is fast on long data
+blocks.  The Cipher has a builtin backup mode for extra rounds of
+encryption.
+
+I'll begin with an encryption example:
+
+hpc -spi 1 -k x -ia hastypudding -e
+ 35645db6de13e64c 0000000012a9def4
+
+This sets the spice to 1 (seven words of 0 are filled in),
+and the key to the single ascii character "x".  The phrase
+"hastypudding" is encrypted with -e, and the output is printed in hex.
+Decrypt it with
+
+hpc -spi 1 -k x -ilen 96 -ix  0x35645db6de13e64c 0x0000000012a9def4 -d
+ 6475707974736168 00000000676e6964
+
+Here I've specified an input length of 96 bits; a length is required for
+the -ix option.  The output is correct, but hard to read.  Adding -txt gives
+
+hpc -spi 1 -k x -ilen 96 -ix  0x35645db6de13e64c 0x0000000012a9def4 -txt -d
+  h  a  s  t  y  p  u  d  d  i  n  g
+
+This gives the general flavor.  The command looks like
+
+hpc <setup stuff> <action>
+
+<setup stuff> selects the key, spice, input data, and backup & trace modes.
+<action> says to encrypt or decrypt, or print some internal state.
+
+setup stuff ---
+
+-spi N ...    Sets the spice.  Default value is 0.
+              Follow with 0-8 64bit numbers.
+-spi 2 0xff   Sets spice[0] to 2, and spice[1] to 255.  spice[2...7] are 0.
+
+-b N          Sets backup mode.  The number is chopped into hex digits.
+              The low digit sets overall backup mode; the next controls
+              key-setup; the next five control the subciphers in the order
+              Tiny, Short, Medium, Long, Xtended.  The overall backup value
+              is added to each of the others.
+-b 1          causes everything to have an extra round of encryption.
+-b 0x320      Key-setup will use two extra rounds and Tiny mode 3 extra.
+-b 0x1001     Short will add two rounds, and everything else one extra round.
+-b 0x1112110  same as -b 0x1001.
+
+-t N          Sets the trace variable.  Individual bits control different
+              printouts.  You will want to use a hex number to select bits.
+-t 512  or  -t 0x200  both set trace flag 9.  (Bit 9 has value 1<<9.)
+              To set several flags, add the values.
+              Good -t settings:  0x7c00 for hpc-tiny, 0x21f for hpc-short,
+              0x276 for hpc-medium and hpc-long, 0x2ff for hpc-xtended.
+              Program must be compiled with -DTRACE.  Not available in the
+              Java version.
+
+-leap         The leap-year flag for -edate.
+
+-txt          Cipher output is normally printed as hex numbers.  This will
+              print output as "safe" characters.
+-txt -txt     prints as raw characters, which will scramble your terminal.
+
+-cbo          Turns on the "Cryptix Byte Order" kludge.  The program prints
+              64-bit hex quantities with the bytes reversed.  Only these
+              prints are reversed; others are unchanged.  Inputs are not
+              affected, compounding the kludge.  The flag may make it easier
+              to match up Cryptix files with HPC output.  This is a half
+              measure, since, for example, the kat files will still have
+              the test items in different orders.  Program must be compiled
+              with -DCBO flag.
+
+-v            Prints the program version.
+
+-klen N       Chooses a key length (in bits).  The key length is normally
+              determined from the size of the key input, but -klen allows
+              you to either truncate the key material, or zero pad it.
+              It's the only way to specify key sizes that are not a multiple
+              of 4 bits.  You might also want to use a long key, but only
+              specify a short amount of material.  Or you might want to use
+              an initial segment of an input file.  -klen should precede
+              the key material.  If you leave out the key, you get zeros.
+
+-k text       Uses "text" as the key.
+
+-kx N ...     Zero or more 64bit numbers are supplied as the key.  Either
+              decimal or (0x)hex.  Requires preceding -klen.
+
+-kxs xxx...   Key is one string of hex digits.  No 0x prefix.
+
+-kf fname     File fname is read in and used as the key.
+
+The Cipher operates internally with 64 bit words.  The packing of the key
+and input data into those words is of interest:
+
+-k abcdefghij places the ascii code for "a" in the low byte of word 0 of
+              the key, and the code for "b" in the next byte to the left,
+              etc.  The next word of data begins with "i" in the low byte,
+              and "j" next.
+-kf fname     A file is just a long text string.
+-kx N N N     places the numeric values in successive words.
+-kxs xxxxx    Blocks of 16 characters are placed into successive key words;
+              Any leftover is placed right-justified in the last word.
+
+Internally, if the length is not a multiple of 64 bits, the fragment is
+defined to be right justified.  If the length is not a multiple of 8 (or 4)
+bits, the last character of key material is clipped, with high bits ignored.
+
+The input options are similar to the key options.
+
+-ilen         Length of the input in bits.
+-ia text      Input is ascii text.
+-ix N ...     Zero or more 64bit numbers.  Requires preceding -ilen.
+-ixs xxxx     Single string of hex digits.
+-if fname     File fname is read in and used as the input.
+
+-o fname      Output to file fname.  This outputs raw bytes, as you would
+              want for file encryption.  Don't try to encrypt in place -
+              who knows what will happen?  The Cipher doesn't delete or
+              erase its input file.
+
+-end text     Endianness check:  Prints text in hex.  Must be the only
+              arguments.
+
+
+Actions ---   one per program invocation.
+
+-pspi         Prints the spice.
+-pb           Prints the backup mode.
+-pk           Prints the key.
+-pka C        Expands the key with subcipher C, and prints the expanded
+              256 word array.
+-pi           Prints the input.
+-foo          Prints foo.
+
+-ps           Polyscan:  computes the swizpoly array.  I've already run
+              this and compiled in the array values, but maybe you want
+              to compute more.
+
+-ksu N        For timing.  Runs key setup N times.
+-et N L       Encrypts an L bit block N times with the Tiny subcipher.
+              No output - it's for timing.  L must be 0-35, or you will 
+              get N errors.
+-et2 N L      Same as -et, but from code adjacent to Tiny.  I-Cache?
+-es N L       Short cipher.  36<= L <= 64.
+-em N L       Medium cipher.  65 <= L <= 128.
+-em2          Same as -em, but from nearby code.
+-el N L       Long cipher. 129 <= L <= 512.
+-ex N L       Xtended cipher.  L > 512 bits.
+-en N         Timing test.  Encrypts N times.
+-dn N         Decryption.
+
+-e            Encrypts the input and prints the output.  The output is
+              printed as a bunch of 64bit hex numbers, unless -txt is used.
+              If -o has selected a filename, that file is written instead,
+              with straight bytes.
+-d            Decrypts.
+
+-ebot N       Regression test.  The input is encrypted for all lengths from
+              N up to -ilen, and the results printed.  Validates algorithm.
+-dbot N       Decryption.
+
+The next three switches do fractional bit encryption.
+
+-enum N L     Encrypts N from the range 0 to L-1 into the same range.
+-dnum N L     Decrypts.
+
+-edate mmm dd Encrypts the date to another date.  mmm should be lower case.
+-ddate mmm dd Decrypts.
+-leap         Sets the leap year flag.
+
+If you play around with date encryption and -leap, you discover a property
+of the way number encryption is handled:  Changing L from 365 to 366
+doesn't affect most encryptions.  Everything is the same except that 365
+is spliced into the permutation at a random place.  If this is a problem,
+put the limit L in the spice to get different encryptions.  (When L crosses
+a power of two, the permutation changes completely.)
+
+In contrast:  Changing any bit in the key, or the length, or any spice bit
+gives a completely different encryption.  Making the input one bit longer,
+or changing any bit, even the last bit in a file, gives a completely
+different encryption.
+
+-eink         Encrypts printable text to printable text.  This illustrates
+              encrypting members of a set, in this case the printable
+              subset of ascii.  Characters in the range from "space" to "~"
+              are encrypted to the same range.   Characters outside the range,
+              such as tabs, newlines, and meta-characters are passed
+              unchanged.  The spice is incremented after each character, so
+              even if your text is aaaaaa, the result will look like tr7$@x.
+-dink         Decrypts.
+
+-nist Out In  Runs the NIST required tests.  Out is the outer loop count for
+              the Monte Carlo tests (default 400); In is the inner loop
+              count (default 10000).  Writes seven files.  See -cbo.
+
+-lentest S Lb Ib Lm Im  Tests consistency of encryption with decryption.
+                        S is the random seed.  Lb is the beginning block
+                        length.  Lm is the maximum block length.  Ib is
+                        the index of the first test.  Im is the number of
+                        tests to run at each length.  Lm is limited to
+                        1280.
+
+-mct S C Lb Lf E P
+              Monte Carlo encryption test.  S is the random seed, C is the
+              number of tests to run for each blocksize, Lb is the starting
+              blocksize, Lf is the final blocksize.  E=1 for encryption,
+              0 for decryption.  P=0 to print results only, 1 for summary
+              only, 2 for both.  The output goes into the file mct.txt
+              unless redirected with -o.  The key is always 128 bits.
+              The key, spice, and plaintext are (pseudo-)random.  Prefix
+              with -b # to test backup mode.  The file mct-test tells more.
+
+The command line interface for the standalone Java version is the same,
+except that the Java version doesn't have tracing.
+
+
+Comments & bug reports welcome!
+
+Rich Schroeppel   rcs@cs.arizona.edu  --revised July 1998
+

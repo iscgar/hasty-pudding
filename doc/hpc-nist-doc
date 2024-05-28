@@ -1,0 +1,369 @@
+
+The Hasty Pudding Cipher:  Specific NIST Requirements
+
+
+Rich Schroeppel
+rcs@cs.arizona.edu
+June 1998
+
+
+
+Blocksizes and Key Sizes Supported
+
+The Hasty Pudding Cipher supports all key sizes, from 0 bits on up.
+An entire file may be used as a key if desired.  Changing any bit
+of the key produces completely different encryptions.  Changing the
+key length by appending 0's produces completely different encryptions.
+
+The cipher supports a secondary key called the spice.  The spice may
+be up to 512 bits long.  Short spices are 0-padded to full length.
+The spice may be changed in one instruction.  Changing any bit of
+the spice produces completely different encryptions.
+The spice need not be concealed from an opponent.
+The key and the spice are independent: Key-expansion does not depend
+on the spice.
+
+The cipher supports all blocksizes, from 0 bits on up.  Encryption
+does not expand or pad the data.  The cipher is efficient on megabyte
+blocks.  (The cipher is less efficient if the block doesn't fit in
+memory.)  Changing any bit of the plaintext produces a completely
+unrelated ciphertext -- even changing the last bit of a megabyte block.
+
+The cipher also supports blocksizes that are not an integral number
+of bits.  Any size numerical range may be encrypted.  For example,
+dates may be encrypted into dates.  This is also a ``no-expansion''
+operation.
+
+The cipher can even be used to encrypt an arbitrary set to itself, such
+as the set of printable ASCII characters, or the set of 86-bit primes.
+
+All combinations of key size, spice size, and blocksize are supported.
+
+
+
+Expected Strength
+
+I have designed the Hasty Pudding Cipher to have a raw strength of 400 bits.
+Except for the (obvious) situations outlined below, an attacker will need
+computational effort 2^400 to
+
+(a) from any number of given plaintext ciphertext pairs,
+    recover an expanded key table, or an original key, or a spice value
+(b) from any set of expanded key tables, to calculate a different expanded
+    key table, or recover an original key
+(c) from any number of plaintext ciphertext pairs, determine the
+    encryption or decryption of a different datum,
+(c2)  or estimate the probability that a hypothetical P-C pair is correct
+(d) determine the length of a key
+(e) determine any bit of the key
+
+even if the attacker knows the spice value.
+If the spice is partly known, the attacker will be unable to determine
+other bits, except by exhaustive search over all the unknown bits.
+
+The claim also applies when the cipher is used with non-integral
+blocksizes (see caveat below).
+
+Exceptions:
+If a B bit block is being encrypted, and the attacker knows 2^B-1 P-C
+pairs, the remaining P-C pair is determined.  (This is usually only
+relevant when B=1, but might apply for other small B.)
+If the attacker knows or guesses the key length, he can try all possible
+keys.  For the NIST preferred key sizes of 128, 192, and 256 bits, the
+attacker will be able to break the cipher in an average of 2^127, 2^191,
+or 2^255 trials.
+If the attacker learns the entire P-C map, he can determine whether an
+odd or even permutation is specified, which will allow determination of
+one parity bit of an intermediate collection of internal cipher state bits.
+
+I have also designed the cipher to withstand a chosen-spice attack,
+but I am uneasy about this possibility.  I do not recommend the
+algorithm be used in ways that would allow the opponent to control the
+spice value.  (Since the spice is cheap to change, it is reasonable to
+use a different value for every encryption, completely trumping this
+concern.)
+
+If the attacker knows the key but not the spice, it will be hard
+to determine the spice, but I haven't determined how hard.
+
+Caveat for non-integral blocksizes:
+Naturally, if the cipher is used to encrypt the same plaintext twice
+without changing the key or the spice, the same ciphertext will result.
+This has a non-obvious interaction with the method used for encrypting
+numbers in a non-power-of-2 range.  This could occur when encrypting a 
+date, which has a range from 0-364.  If two different ranges are used
+for encryption (or decryption), and the spice and key are unchanged, and
+the two ranges require the same number of bits to represent, then the
+encryptions will be the same for the two ranges when both plaintext
+and ciphertext are in the smaller range.  Additional relationships hold
+when more plaintext-ciphertext pairs are known in the two ranges.
+As a preventive for this situation, the size of the range can be
+included in the spice when several ranges are used.  This problem is
+also prevented by changing the spice for each encryption.  The file
+hpc.hlp has a brief discussion of this phenomenon at the -leap flag.
+
+
+Rationale
+
+The expected strength is based on the number of bits of internal state
+in the Cipher.  The attacker will have to guess most of the internal
+state to determine the rest.
+
+
+
+Known Attacks
+
+The only known attack is the generic one of guessing some of the
+internal cipher state and calculating the rest, trying to relate known
+plaintext and ciphertext.  Because the cipher has so much internal
+state, the attack looks impractical.  The irregular structure of the
+internal operations makes it difficult to control ``state bloom'' -- a
+partial state continually decays, requiring the attacker to make
+additional guesses to keep the calculation going.
+
+Depending on the implementation, the cipher will be subject to timing
+attacks.  This can be countered by changing the spice frequently.
+
+
+
+Weak Keys
+
+A key is weak only if its expansion table contains a large number
+of low Hamming weight values, or a large number of nearly equal
+values.  The probability of this occurring for a randomly selected
+key is negligible.
+
+
+
+Equivalent Keys
+
+Two keys are equivalent if they expand to the same key-expansion
+table.  The likelihood is negligible for keys of size < 1/2 the
+key-expansion table size, 8192 bits.  For keys longer than this, some
+will be equivalent, but there is no feasible way to discover an
+equivalent key pair.
+
+For small blocksizes, only (2^B)! permutations are possible:  When
+B is 3 bits, there are only 40320 possible permutations, so keys
+will be in equivalence classes.  (Changing the spice will cause
+different encryptions, so the equivalent keys are subdivided into
+uniqueness.)
+
+For the small blocksize cipher, Hpc-Tiny, for blocksizes < 36 bits,
+an intermediate pseudo-random number is calculated to control the
+operation of the cipher.  The attacker may be able to restrict the
+possible value of this number, if he learns sufficiently many P-C pairs.
+For example, for B=5, the intermediate value has 192 bits.  Learning
+one P-C pair will exclude 31/32 of the possible intermediate values,
+leaving only 2^187 possible values.  If the entire map is learned, the
+number of possible intermediate values is about 2^80.  There seems
+to be no way to use this information to learn anything about the key,
+or the key expansion table.  If the key is known, the spice could be
+similarly restricted.
+
+
+
+Complementation
+
+There are no complementation properties, except for blocksize B = 1 bit.
+
+
+
+Key Restrictions
+
+None.
+
+
+
+Trapdoors
+
+The Hasty Pudding Cipher contains no trapdoors.  All internal constants
+and tables are based on the (apparently random) hexadecimal expansions of
+well known mathematical constants.
+
+
+
+Publications & Analyses
+
+Since Hasty Pudding is new, there are no articles about it.
+
+
+
+Advantages & Limitations
+
+The main advantage of the Cipher is flexibility, while retaining good
+speed  and excellent security.  There are things that Hasty Pudding can
+do that are impossible for other ciphers.  (Read the Overview for
+specifics.)
+
+Hasty Pudding offers arbitrary block size, arbitrary key size, flexible
+key management, instant key change, and video speeds.
+
+The 64-bit design looks to the future: this cipher will last.
+One 64-bit machine, the Alpha, is already in wide use.  Intel will be 
+bringing out their own machine in the near future.
+
+The minimum memory requirement of 2KB may be a challenge for smartcards.
+
+Hasty Pudding will have a larger code+data footprint than many other
+ciphers, but memory is cheap and getting cheaper.
+
+
+
+Other Applications
+
+The cipher can be used as a hash in various ways, although it has no
+speed advantage over SHA or MD5.  For example, a keyed hash can be
+constructed by placing the object to be hashed in the spice; a file
+could be encrypted with itself, or could encrypt a shared-secret value.
+Because all the bits are mixed in an encryption, selecting some of them
+(perhaps the leading 160) makes a good hash.
+
+The cipher can be used as a MAC generator.
+
+The cipher can be used as a pseudo-random number generator.  It has one
+interesting advantage as a PRNG: it can jump instantly to any place in
+the random number sequence.  Most PRNGs can't quickly jump ahead to
+the billionth following random number, or go backward.  The Hasty Pudding
+Cipher can set the seed into the spice, and use a key of length 0.
+The Nth random number is calculated by extending N to 128 bits,
+encrypting the 128-bit block, and selecting the low 64 bits.
+The main drawback to this PRNG is speed: the cost per random number
+is higher than typical PRNGs.
+
+The cipher can be used as a stream cipher: each bit or byte can be
+separately encrypted.  The spice can be incremented after every
+encryption.  If data dependence of the encryption stream is desired,
+the encrypted data items can be numerically added to the spice, or some
+portion of the most recent 512 bits of ciphertext can be used in the
+spice.
+
+For the longer blocksizes, the cipher is faster than 100 Mbits/sec
+on stock hardware (the 300 MHz Alpha).
+
+For ATM, HDTV, B_ISDN, voice, and satellite applications:  The high
+bandwidth of the cipher is an advantage.  The flexible blocksize is
+useful in variable rate applications: there is no need to wait for
+a full block of data to accumulate before doing an encryption and
+shipping the data.  No space is wasted by encrypting; no padding
+is required.  The spice feature makes parallel encryption easy,
+allowing extra hardware to help out when especially high bandwidth
+is needed.  Another advantage of the flexible blocksize appears
+when encrypting parts of headers, while leaving other parts of the
+header in the clear.  For example, a network firewall connecting
+two distant parts of an organization might encrypt the low-order
+byte of the IP address to hamper traffic analysis.
+
+
+
+Timing  Measurements
+
+
+Encryption speed is independent of key size.
+Decryption is about the same as encryption.
+There is no specific algorithm setup required.
+Key setup time is virtually independent of key size.
+Spice change time is instantaneous - 1 instruction.
+
+  block     300MHz     250MHz
+  size      Alpha     Pentium Pro
+
+    1 bit    2.3 usec  14.8 usec
+    2        3.3
+    4        3.1
+    8        7.3       48.8
+    16       5.5
+    32       5.0
+    64       2.1       15.4
+    79       2.0
+    128      2.0       13.7
+    256      2.3
+    512      2.9       19.4
+    1024     7.7
+    2048    15.8
+    4096    31.9      231.
+    65537   62.2
+    1000000  9.2 ms
+
+ key setup  79 usec   550 usec
+
+
+The Pentium is 6-7x as slow as the Alpha.
+The Alpha needs 600 clock cycles to encrypt a 128-bit block.
+The Pentium appears to need 3500.
+
+
+
+Timing Estimates
+
+These are based on extrapolating from the measured data above.
+All times are in clock cycles.
+
+
+Platform:  200 MHz Pentium
+
+keysize/blocksize:      128/128  192/128  256/128
+encrypt one data block    3500     3500     3500
+decrypt one data block    3500     3500     3500
+key setup               140000   140000   140000
+algorithm setup              0        0        0
+key change              140000   140000   140000
+spice change                 1        1        1
+
+
+Platform:  7 MHz Z80 style architecture:
+
+Assume an 8-bit add from memory to memory takes 7 clocks (1 usec).
+This works out to 2500 times as slow as an Alpha for 64-bit addition.
+The Hasty Pudding Cipher will scale accordingly, needing 5ms to
+encrypt a 128 bit block.
+
+keysize/blocksize:      128/128  192/128  256/128
+encrypt one data block    35000    35000    35000
+decrypt one data block    35000    35000    35000
+key setup               1400000  1400000  1400000
+algorithm setup               0        0        0
+key change              1400000  1400000  1400000
+spice change                  2        2        2
+
+
+Platform:  300 MHz Alpha
+
+keysize/blocksize:      128/128  192/128  256/128
+encrypt one data block     600      600      600
+decrypt one data block     600      600      600
+key setup                24000    24000    24000
+algorithm setup              0        0        0
+key change               24000    24000    24000
+spice change                 1        1        1
+
+
+There is no particular time/memory tradeoff:  Unrolling loops and
+in-lining subroutines gives some speed improvement.  Fixing the
+blocksize allows some code simplification.
+
+
+Memory Requirements:
+
+The code footprint is between 10KB and 100KB.  The code size is
+reduced by using subroutine calls instead of macro expansions,
+and not unrolling loops.  If some blocksize ranges are not needed,
+the code for those ranges can be dropped.  (Of course, the
+reference implementations include a lot of test and interface code
+that would be dropped from a delivery version.)
+
+The key expansion tables require 2300 bytes.  If all size ranges
+are used, 5 tables are needed, for a volatile memory requirement of
+11.5KB.  A smart-card could get by with only one key expansion table,
+by recomputing the table as needed for each blocksize.  A designer
+might choose to slightly weaken the cipher and use one key expansion
+table for all blocksizes.
+
+In addition, the plaintext or ciphertext block must fit in memory.
+(This is not an absolute requirement, but a practical one.  The cipher
+can encrypt an entire disk or tape as one block, but some intermediate
+sorting steps are needed.)
+
+The cipher can encrypt or decrypt a large data block in place, with
+only about 100 bytes of extra memory to hold the internal state.
+

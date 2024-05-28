@@ -1,0 +1,101 @@
+Hasty Pudding Cipher  --  README file (describes all 4 diskettes)
+
+See the file README2 for more detailed information, compile & test, etc.
+
+----------------------
+
+REFERENCE IMPLEMENTATION
+
+
+hpc-ansi.c    Reference implementation.  ANSI compliant.
+
+hpc-gcc.c     Gcc version.  Faster, cleaner.
+
+hpc-nist.c    Test file to exercise NIST interface functions.
+              Pretruncation filename was hpc-nist-top.c.
+
+hpc.h         Insert file from NIST. (was aes.h)
+
+hpc.hlp       Help file for command line interface.
+
+
+----------------------
+
+MATHEMATICALLY OPTIMIZED IMPLEMENTATIONS
+
+
+hpc.jar       The .jar file of the compiled Java.
+
+hpc_algo.jav  The algorithm, set up to interface with the simple NIST API.
+              Pretruncation filename was HPC_Algorithm.java.
+
+hpc_prop.jav  Malleable properties.
+              Pretruncation filename was HPC_Properties.java.
+
+hpc_stan.jav  A standalone version of the algorithm, providing a command
+              line interface.
+              Pretruncation filename was HPC_standalone.java.
+
+hpc-ansi.c    Reference implementation.  ANSI compliant.
+
+hpc-gcc.c     Gcc version.  Faster, cleaner.
+
+hpc-nist.c    Test file to exercise NIST interface functions.
+              Pretruncation filename was hpc-nist-top.c.
+
+hpc.h         Insert file from NIST. (was aes.h)
+
+The optimized C version is the same as the ordinary version,
+compiled with the -DOPT128 flag.
+
+----------------------
+
+TEST VALUES: KNOWN ANSWER TESTS AND MONTE CARLO TESTS
+
+
+All of these files are compressed with gzip.  The filenames have been mangled.
+
+cbc_d_mx.gz   NIST required tests
+cbc_e_mx.gz
+ecb_e_mx.gz
+ecb_d_mx.gz
+ecb_vktx.gz
+ecb_vtxt.gz
+              Pretruncation filenames were cbc_d_m.txt, cbc_e_m.txt, ecb_d_m.txt,
+              ecb_e_m.txt, ecb_vk.txt, and ecb_vt.txt.
+
+len-scan.gz   Encryption of one block for each blocksize 1 - 1200.
+              Pretruncation filename was len-scan-1200.
+
+tr*e.gz       Trace of encryption of one block, for many different block sizes.
+              The blocksize is the number in the middle of the filename.
+
+trace-hp.gz   Trace of key setup operation.
+              Pretruncation filename was trace-hpcksu.
+
+<to be added>
+ecb_tbl.txt   Test values to verify internal program tables.
+
+kxexampl      Explanation and four examples of key expansion.
+abc, alpha*   Test files for key expansion.
+
+mct-test      Explanation of Monte Carlo testing of various size blocks.
+mct1 - mct18  Results of eightteen Monte Carlo tests.
+              mct11 is the torture test.
+
+----------------------
+
+SUPPORTING DOCUMENTATION
+
+
+hpc.hlp       Help file for command line interface.
+
+hpcover.*     Overview of the Hasty Pudding Cipher.
+
+hpc-spec.*    Specification of the Hasty Pudding Cipher.
+
+hpc-nist.*    Required declarations of algorithm strength, etc.
+              Pretruncation filename was hpc-nist-doc.*
+
+----------------------
+

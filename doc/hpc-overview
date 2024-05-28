@@ -1,0 +1,406 @@
+
+An Overview of the Hasty Pudding Cipher
+
+
+Rich Schroeppel & Hilarie Orman
+rcs@cs.arizona.edu
+July 1998
+
+While we are all waiting for NIST to uncloak the new Advanced
+Encryption Standard, we've cooked  up a tasty morsel: the Hasty Pudding
+Cipher (HPC) is fast and flexible, and provides strong security.  A
+bottle of Dom Perignon to anyone who cracks the cipher!
+
+This is a public domain method with no known patents.  The code is not
+copyrighted.
+
+Hasty Pudding is a variable length block cipher.  The block size may
+be *any* number of bits,  even fractional bit values are permitted.
+The arbitrary block size means that anything can  be encrypted without
+expansion.  It also means that large data units (files, email
+messages,  etc.), if encrypted as single blocks, can have encryptions
+that interrelate all of the constituent bits, not merely those that
+are in contiguous 64 bit blocks, for example.
+
+The key size may be any whole number of bits; the key space is larger
+than any measure of the physical universe.  It is possible to use a
+long-term key, with key lifetime not limited by the "amount of
+material protected by one key" restriction.  Of course, other lifetime
+limitations will still apply -- keys can be stolen, or leak, etc.
+
+Hasty Pudding is fast, achieving 100 megabits per second on 1000-bit
+blocks on a 233 MHz DEC Alpha.  The cipher works best on 64-bit
+architectures, but runs acceptably fast on 32 bit machines.  For RISC
+architecture machines, such as the Alpha, the cipher is remarkably
+conservative of instruction usage: on the Alpha it uses about 20
+instructions and 2-3 memory references per byte of input plaintext.
+
+The Hasty Pudding Cipher has a security feature applied to each
+datablock, the *spice*.  It may be regarded as a secondary key that
+need not be concealed.  Use of the spice offers one of the
+advantages of cipher block chaining mode (CBC), because the spice can
+be changed very cheaply for each block encrypted,  yielding different
+ciphertext even when the plaintext remains constant.  Spice offers an
+advantage of over CBC, though, because the spice can be generated
+quickly and used for parallel encryption of several blocks at once.
+
+The cipher is fast enough to be used for many distributed system
+application, such as video multicast, virtual memory for diskless
+client machines, and encrypted file systems.  Interestingly, random
+access is well supported, because each record (or file block) can be
+encrypted with a different spice, perhaps based on block number or
+customer account number.  For structureless text files, the block
+number could be used as the spice.  Because there is no expansion
+(ciphertext size is always identical to plaintext size), and no CBC
+problem, a new block can be written over an old one without the
+block-to-block chaining problem that CBC has.
+
+The architectural dependencies of the cipher speed are minimal.  A
+RISC machine with 64 bit registers and 64 bit memory operations, a
+first-level data cache of at least 10K bytes, and an instruction cache
+of at least 8K bytes will have the best performance, but similar 32
+bit architectures will have acceptable performance as well.  The
+cipher is quite miserly in its occasional use of multiplication and
+other expensive instructions.  Pipeline busting conditional branches
+are rare.
+
+The disadvantages of the cipher include its complexity and resulting
+use of a large amount of instruction memory.  Another disadvantage for
+power-limited processing environments is its use of RAM: for each key
+it requires 2K per blocksize range, and there are 5 blocksize ranges.
+
+Performance Considerations
+
+The highest speeds are for blocks of length 64 bytes and up. The
+shorter blocksizes are slightly slower.  The speed for single bits is
+much slower but still compares favorably with other methods.  In
+actual practice, cipher speed is important for bulk encryption, but
+less important for small data units, because the cost of processing
+small blocks is generally dominated by application service
+requirements (parsing, computation, disk access, etc.).  Thus, HPC is
+engineered to be fastest where speed counts most.
+
+The extra effort to safely include the spice impacts noticeably on the
+time for short blocksizes; even if the spice is removed, the cipher
+remains sluggish.  A user merely needing to encrypt single bits might
+instead choose to encrypt 64 bits of zero at a time, thereby obtaining
+64 bits to XOR with the target.
+
+Because the cipher accesses the datablocks at random, very large
+datablocks (e.g. one million 64 bit words) may cause translation
+lookaside buffer misses that cause the performance to degrade
+slightly.
+
+The code size might exceed the size of the on-chip cache for some
+architectures; this will have an adverse effect on performance.
+
+When implemented on a 32-bit computer architecture, the speed will be
+greatly affected by the operations that add, shift, and rotate,
+because the testing for carry bits will cause the instruction pipeline
+to stall.
+
+The running time of the algorithm depends on several usage factors,
+one of them being the length of the spice.  If the spice is shorter,
+the algorithm will run faster.  This offers opportunities for
+fine-tuning the speed of the algorithm to the security requirements of
+the application.
+
+When the cipher is used for encrypting data values that have a domain
+size that is not a power of two, the running time of the algorithm is
+probabilistic.  This is due to the method that Hasty Pudding uses for
+mapping from the domain to a cipher range that is nearly equal in
+size: encipherments are generated in a larger domain until a value
+within the domain appears.  This assures that the cipher values have a
+uniform range, the same as the plaintext domain values.  However, the
+variance in the running time may not be acceptable for hard deadline
+applications.
+
+The five key expansion tables needed for each key imply that a data
+cache of at least 10K bytes is normally required.  For specialized
+applications, utilizing only one block size, only a single 2K table
+need be generated; this reduces instruction space usage as well.  The
+fractional bit techniques might also be dropped in some cases, further
+reducing the instruction memory requirements. 
+
+Design Considerations
+
+Though this is a "kitchen sink" cipher, using many disparate tricks,
+the irregularity has its advantages.  It prevents differential
+cryptanalysis and makes linear analysis hard.  The analysis is harder
+for both the good guys and the bad guys.  Even in the event of
+practical quantum computing methods emerging in the future, Hasty
+Pudding is likely to fare well because of its ad hoc design
+complexity; it may well have too much state to represent in any
+realizable quantum machine.  On the other hand, this complexity means
+that the cipher cannot be represented compactly for today's computer
+architectures, either, and the cipher will have a large instruction
+footprint.
+
+A design goal for the cipher is to have triple diffusion: one bit of
+change in data or spice propagates three times through the cipher
+state, changing every bit.  Some of the subciphers have diffusion
+near five.  The extended-length subcipher has diffusion two, but
+is compensated by the mixing rounds.
+
+The Cipher uses the non-linearity of addition and exclusive OR to
+achieve mixing of the bits.  The key expansion memory serves as an
+additional non-linear function, mapping 8 bits to 64 bits.
+
+The key expansion table is referenced at least 24 times during any
+block encryption, utilizing 64 bits from the table on each access.
+This ensures a liberal use of keying material in each block of output
+ciphertext.
+
+A single bit change in spice affects all ciphertext bits with nearly
+equal probability.  In the event that Hasty Pudding is used with a
+requirement for secrecy of the spice, this feature minimizes the
+likelihood that cryptanalysis of the ciphertext could reveal the spice
+values.
+
+The cipher is designed to take advantage of instruction-level
+parallelism, and the spice allows block level parallelism.
+
+
+Overview of the Operation of the Hasty Pudding Block Cipher
+
+The inputs to the main HPC routine are the following:
+
+        Plaintext
+        Output buffer (this is the output area)
+        Length of the plaintext (in bits)
+        Key
+        Length of the key (in bits)
+        Array of 5 pointers to key expansion tables
+        Pointer to spice
+        Multiple encryption count
+        
+Hasty Pudding is five different ciphers for five different block size
+ranges: 
+
+   tiny                   <=35 bits 
+   short                  36-64 bits
+   medium                 65-128 bits
+   long                   129-512 bits
+   extended               >=513 bits
+
+Each cipher has the underlying Feistel structure (although it's
+changed so much that Feistel probably wouldn't recognize it).  
+
+The cipher key controls the key expansion table at the start of the
+cipher.
+
+The internal state of the cipher contains up to 8 variables of 64 bits
+(512 bits), depending on the block size. The internal state of the
+cipher is initially derived from the plaintext.
+
+The cipher consists of a series of steps (a "step" is similar to a DES
+"round") that alter the values of the internal state variables.  A
+step alters each state variable at least once.  Each of the
+assignments to a state variable is called a microstep, and each
+microstep is a simple, reversible function of its inputs.
+Many steps use eight bits of the state to select a word from the key
+expansion table.  The word is mixed with some the state via the
+microsteps, and the state is then "stirred" by mixing it with itself.
+
+Every few steps, the Cipher uses the spice to alter the state.  This
+pattern (cipher, spice) is run for a few steps; the spice is used a
+minimum of five times for each block.
+
+A microstep takes as inputs the state variable that will be altered,
+and one or two other selected words from the state, and possibly one
+or two words from the key expansion table.  The operations for
+combining the inputs are selected from the following set: addition,
+subtraction, exclusive or.  Often one of the inputs is shifted.
+
+Decryption consists of reversing the microsteps.
+
+The extended cipher works by interleaving a step with an operation
+that exchanges a plaintext word with a state word.  This combination
+of step and exchange is executed once for each word in the plaintext
+array.  This is called a pass, and there are three passes in extended
+mode.  Each pass uses the plaintext array in a different order.
+Between passes, a few steps are executed to make sure that small
+changes in the plaintext propagate throughout the ciphertext.  Some
+steps use the spice.  Each step is invertible.
+
+The inputs to the HPC function for fractional bit encryption are the
+following:
+
+        Plaintext (this is the integer that is to be encrypted)
+        Size of the output range (an integer)
+        Key
+        Length of the key (in bits)
+        Array of 5 pointers to key expansion tables
+        Pointer to spice
+        Multiple encryption count
+
+The output of the fractional bit encryption is an integer between zero
+and the size of the output range minus 1.
+
+
+Key Expansion
+
+There are five key expansion tables, one for each subcipher.  Each
+table is an array of 256 64-bit words. The code for creating the
+tables is the same for each subcipher.  The table initialization
+depends on the subcipher number, which produces completely different
+expansion arrays.
+
+There are three inputs to the key expansion process: the key, the
+subcipher number (one to five), and the low 64 bits of the length of
+the key.  The inputs control the initialization of the array.  The
+stirring process amplifies minor differences.  In the version of Hasty
+Pudding coded below, the key expansions are done only when needed.
+
+An application may use one key expansion table for all five
+ciphers. In this case, the table for medium length is used.  This
+carries some additional risk, since it allows the possibility that one
+of the five ciphers could be broken, and the key expansion table
+recovered, which would then expose traffic in the other four ciphers.
+
+Modes
+
+Because it is a block cipher, Hasty Pudding can be used in all the
+usual block cipher modes.
+
+The spice itself offers all the advantages of CBC mode as well some
+unique advantages, such as parallel encryption.
+
+Hasty Pudding can be used to simulate a stream cipher by initializing
+the spice to zero, and then incrementing it for each item encrypted.
+The efficiency is of this mode is poor for bits, but is tolerable for
+bytes, and reasonable for 64-bit words.
+
+If a "random" bit stream is all that is required, then encryption of
+any convenient size of  integers will do.
+
+Implementations of Hasty Pudding must include the option for multiple
+encryption modes.  In the event that machine speeds or cryptanalysis
+renders the single encryption mode less secure than is desirable, it
+should be possible to easily change fielded versions to use double or
+triple encryption mode.
+
+The Spice
+
+Each block can be encrypted with a unique contribution, the spice.
+This is similar to an initialization vector (IV) for DES, in that it
+need not be concealed and it assures that two identical plaintext
+blocks will not have the same ciphertext.  The spice need not be used,
+but if it is, it protects against block splicing attacks that are
+common to the cipher block chaining (CBC) modes.
+
+The spice also allows parallel encryption of several blocks, a
+capability  that CBC prevents.  Both CBC and Hasty Pudding with spice
+can be parallel decrypted.
+
+The spice is long enough (512 bits) that it can be used to contain a
+variety of "uniquifying" data.  These might include things like date
+and time, inode number, user account number, filename, etc.  One word
+can be reserved for the block number, so any file or data connection
+will have unique encryption of every block sent.  Even if the
+plaintext is a constant stream of zeroes, a different spice for each
+block will cause the ciphertext to look random. 
+
+Block splicing is not a problem, because moving a ciphertext block to
+another place will cause it to decrypt to randomness.  This is better
+than CBC, which can be spliced at the cost of two random decrypted
+blocks.  
+
+The spice can be shortened to fewer words, or deleted entirely, for
+extra speed.  Unused portions of the spice are treated as 0.
+
+Spice Caveat
+
+Avoid using spice that is controlled by an opponent because the cipher
+is not warranteed against a chosen-spice attack.  Though no such
+attack is known at this time, it seems prudent to avoid this mode
+absent more analysis.  The spice is not a substitute for a cipher key,
+and the cipher should never be used in a mode where the key is known.
+
+
+Security Analysis
+
+I'm claiming a security level of 400 bits.  This means that an
+attack will require 2^400 trials to succeed.  The claim is based on
+the amount of intermediate state in the cipher, and the amount
+of key expansion table used for each encryption.
+
+Five separate key expansion (KX) tables are used.  Each is 256 64-bit
+words.  One security goal is that a break in one algorithm which
+reveals the KX table doesn't spoil the other sub-algorithms.  The KX
+algorithm has been made deliberately lossy, so that an attacker who
+learns a KX table cannot work backward to find the original key.
+
+For single bits, knowing the encryption of zero implies the encryption
+of one and vice-versa.  For somewhat larger blocks of size B, if the
+attacker learns the encryptions of 2^B-1 values, then the last value
+is determined, as is the parity of the defined permutation.
+
+The step used in Hasty Pudding churns most of the bits.  A one-bit
+change will be amplified to 2 or more bits changed.  After 9 steps, a
+one-bit change can affect all 2^9 state bits.  These include the KX
+lookup, and the variable shifts.
+
+The cipher includes both linear and non-linear combining operations:
+xor and add/subtract.  Xor is bitwise linear, but arithmetically
+non-linear.  Viewed from an arithmetic perspective, add/subtract is
+linear, but xor is non-linear.  (In both cases, shifts are nearly
+linear.)
+
+The KX lookup is highly non-linear.
+
+Two other mixes are relevant:  Any single bit position within a word
+(or the entire state) is mostly mixed with other words in the same
+position.  The variable shifts, and the fixed shifts, guarantee 
+diffusion along the bit-position dimension.
+
+Finally, adjacent collections of bits must be broken up.  This is done
+by allowing parts of words to fall of the ends during shifts.
+
+State information flows from each word into each other word; three
+steps gives a complete graph of words flowing into every other word
+and themselves.
+
+The spice is mixed in at a time when the state from the initial
+plaintext (or final ciphertext) is so thoroughly mixed that nothing
+can be learned.  If the attacker can somehow peer into the internal
+state (or guess it), and vary the spice to cancel it, the other spice
+uses will scramble the effort, foiling attacker's attempts to detect
+the match.
+
+If the attacker can guess most of the KX array, then a sufficient
+number of known plaintext-ciphertext pairs will fill in the array.
+Varying the spice will somewhat blunt this attack.
+
+If 16384 bits of plaintext-ciphertext are known, along with the spice
+values used, then the KX array is in theory determined.  If the spice
+is fixed but unknown, 16896 bits (in theory) define both the KX and
+the spice.
+
+Although indefinite size keys are allowed, there are in effect only
+2^16384 distinct keys.  (If all five tables are considered, then there
+are 81920 bits of key.)
+
+It is important that the key expansion table be generated by the
+pseudorandom process in the cipher specification and not by direct
+user input.  This is because a small change in the expanded key
+might not have any effect on the ciphertext.  In such a case, an
+attacker might guess which key words were used, and vary the spice to
+try to solve for them.
+
+
+
+
+Challenge
+
+In keeping with the tradition of offering prizes for cryptographic
+success, while reflecting my modest means, I (RCS) am offering a bottle
+of Dom Perignon champagne for progress attacking Hasty Pudding.  I will
+attempt to award a prize each year for the best work that comes to my
+attention.  You don't have to break Hasty Pudding to win -- the best
+paper may be analytical, or statistical, or attack a simplified
+cipher, or the key expansion, or suggest an improvement to the cipher.
+The prize work must be publicly available.  I'll make awards until the
+cipher is broken or I have given ten prizes.
+
+

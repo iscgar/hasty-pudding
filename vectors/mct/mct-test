@@ -1,0 +1,79 @@
+This file lists the commands to generate Monte Carlo test files mct*.
+The tests exercise various blocksizes, encryption & decryption,
+and backup mode.
+
+Each test uses a random 128-bit key, random spice, and random plaintext
+or ciphertext.  Most of the time for the tests goes into key-expansion,
+since the key is changed for every test.
+
+    hpc -o mct1 -mct 1 3 5 7 1 2
+    hpc -o mct2 -mct 2 3 127 129 1 2
+    hpc -o mct3 -mct 3 400 1 10 1 2
+    hpc -o mct4 -mct 4 100 11 70 1 2
+    hpc -o mct5 -mct 5 10 71 700 1 2
+    hpc -o mct6 -mct 6 100 999 999 1 2
+    hpc -o mct7 -mct 7 20 3141 3141 1 2
+    hpc -o mct8 -mct 8 20 1279 1281 1 2
+    hpc -o mct9 -mct 9 10 31415 31415 1 2
+    hpc -o mct10 -mct 10 1 314159 314159 1
+    hpc -o mct11 -mct 11 400 1 1200 1 1
+    hpc -o mct12 -mct 12 50 1 200 0 2
+    hpc -o mct13 -mct 13 5  201 700 0 2
+    hpc -o mct14 -b 1 -mct 14 10 1 200 1 2
+    hpc -o mct15 -b 3 -mct 15 100 1 700 1 1
+    hpc -o mct16 -b 3 -mct 16 50 1 700 0 1
+    hpc -o mct17 -b 1 -mct 17 10 1 300 0 2
+    hpc -o mct18 -b 1 -mct 18 50 1 90 0 2
+
+The arguments to -mct are seed, beginning blocksize, ending blocksize, an
+encryption/decryption flag (enc is 1, dec is 0), and a print-control flag.
+The print flag is 0 to print each encryption or decryption result; 1 to
+print summary information for each blocksize; 2 for both.
+
+For repeatability, the random number generator is reinitialized from
+the seed for each blocksize.  This means that the same key and spice
+will be used for many tests, and that the plaintexts for various lengths
+will share low-order bits.
+
+Some of the output files are summary-only to keep the size down.
+In order to generate these independently, it's necessary to exactly
+replicate the PRNG used in the tests, and to fill the key, spice etc.
+exactly as I have.
+
+The PRNG is mediocre, but does the job.
+
+/* U64 is unsigned 64-bit integer data type.  Arithemtic is mod 2^64. */
+#define PI19 3141592653589793238
+
+void initrand(U64 *arr, int i)
+{  int j; U64 k=i; arr[0] = PI19 + k*k*k*k*k;
+   for (j=1;j<i;j++) arr[j] = 1 + 5* arr[j-1]; }
+
+/* stir random array */
+void myrand(U64 *arr, int i)
+{  int j; U64 v = PI19 ^ arr[i-1], t;
+   for (j=0;j<i;j++)
+   { t = arr[j]; v = (j&1) ? v^t : v+t; v = v<<23 | v>>41; arr[j] = v; } }
+
+A random array of 20 64-bit words is used.
+The PRNG is reinitialized at the start of each blocksize with
+
+  initrand(randarr,20); randarr[0]+=seed; myrand(randarr,20);
+
+For each test:
+The PRNG is stirred with myrand(randarr,20).
+The key is set from randarr[0] and [1].
+The PRNG is stirred.  The spice is set from randarr[0-7].
+The PRNG is stirred.  The plaintext is set from randarr[0...].
+If more than 1280 bits are needed, the PRNG is stirred again, etc.
+Then the encryption test is done, printed if flagged, and summary results
+accumulated.
+
+For blocksizes <= 1280 bits, the PRNG is stirred exactly three times
+for each test.
+
+The summary results accumulated are the xor and sum of each key, spice,
+plaintext, and ciphertext.  The sums are treated as very-long quantities:
+carries are propagated from word N of the sum into word N+1.  However,
+the results are printed with word 0 on the left.
+

@@ -1,0 +1,167 @@
+T0 entered hpceshort  ptx 0000000000000061 ctx 0000000000000061 lbits 64
+T9 spi[8] and karr[256]
+ 0000000000000001 0000000000000000 0000000000000000 0000000000000000 0000000000000000 0000000000000000 0000000000000000 0000000000000000
+ 9a1950ca196c43b4 bb35f09ae74d1119 04b0a03ec91f3bea b34a3985afcaf562 ef04e4a74e321d42 bee8c32a44400c24 af7307dbd326a309 7feab86d3c12966f
+ 8367c4a30cec979f 73634cb65dccda6c f4016dd8aa22c509 2dadd525542baf70 dacaadb672319488 a0ad5f7cb9b8b608 40e0f0b83b9605d7 86635e348a38a4e1
+ ea6ca4a37658136e 84c3eb77756dab78 dabe3e93b06489f5 a63bb75527903abb 8bf285396900e11c ca9ad074036cd668 6361786a78e58ba2 1c43f8574d0edde5
+ 6aa47ac9495f0524 04625643347de547 025e9bf1ccbf7aae aca4087ee7040691 33d3050154c09488 50885621ebf58b3d 0a900648a0275570 cd4284575aab3b30
+ d958c357ea9351f7 dc3fd50d137bd801 7c21fb2a243615a5 4d3f91b74e7d987a 54730646ad49692f 10bfde365c921bc0 74f350d518a3bf80 cdbbf1d57eda54b3
+ c4335bce30478ba8 23abe7c74e8efc4c 9c1e1c3dfb42d491 2e2def86b5ac2b31 836567cd75e4aabb d3414ad1752b52b6 4e8d420e0349ffa4 302ed5ce372622b8
+ 1cec68140ee6dc2c ebb1fad04365c475 5127fa707c62289d 71caefa17a27d1d4 63e64c104c199fb2 0539fc0d444211d1 46d0009ffa779e62 3ac28efa9c96baf6
+ 30ced4e93458ab5a 897b5cfbd717fd82 3018240589ca26ae 632899a369224b8a ec41807a0b720460 93987d787d53a1fc e31c2260d196c2a6 42697c1a5cdc6ad8
+ c524e4eab3176dce 44ad1fd641c9ec5a a95e8c6ddd4c35a7 2ad95071cb17f1e8 462a84354702a0e5 f8c1ddbc985de4a9 5c1f877142eb3238 58f6093014ae47d3
+ 88631847a224e0c7 fa570699f5e9a8bd b9a3d23d0bfd3979 94fc1abca5c3714b 03fd3b80805da77d 6e8cbbf5376a9f41 97f67452460859b8 ab291c66bd387f3e
+ 5a6a9d39b5db3ec3 123335d7c164a0e0 bad73c5f6e27b881 e9d85114e9f16d9a b404d0fe4661cc11 1ef61074e9aceacf 5b81de5bee3c8972 9c8a861739801ffa
+ 989ef5d5af722389 99850fbb8d1923f5 d2d06c8aee34cb2c a38589cf8f983339 933981bf86987f25 e71e64e86b9e4593 c6a451cbac2856c6 da0854ecbeb1ce35
+ 1916bfdd42ede231 5cc770d68c4c5a20 2dd0b3cd60030006 ea62ec3559942934 4447f4d1cea5ae99 b1150b12b30c0ab1 07519f983a23c4b0 09268b334d89565f
+ 03522f7861b257a5 9dffcfb61392c7fe 90bfd7fbfa27d29f cacf007cb3964677 c6ea071161210df9 48d5fd763c69bb0d c533878155fa1681 d8e2dfc5d288a14a
+ 85d8194ea746da5a 5a037ea64edd38ca 2a12a0bde52a314b 7a52187890cae455 bafa8be270768815 62211b9085c12cef cfcd5c1986d2daf3 071efaade349260d
+ 3dfd43b3699be732 af11e221c42e57a5 1c41904026b9dbf0 e67a5fb674f86598 8dd509b56758059d a3b7e5e7cacd8d12 ee02130e083f9f89 6ac4c736331faf8e
+ e461ccc8956d7ff7 3df7acf0b86b5d02 1b209b7cecafea5b 5436eaf918975ec2 444457e66ee26a7b cc33747f03e1bfdd 875460fa2a28d2dd b30ab32a90ffb92f
+ 59cf612e10923e34 751ceaaed055fc9d e7a14e1de86a4242 d037d5a4180fd306 8a9f113f9ee044cb 48795b175f17ed30 0935188d58efc054 b038da10ba05e0c8
+ 52d3602175d178f8 cb5cd02033ef4086 c498afb784a4e08a aab6a6b2b7c1bfe7 e33f204672112212 62414fee14788cc3 d6d1ec8162a533f6 85f1b380443776b7
+ 7d2b67c3cda25602 9b6ed42de527d506 0903d17aaea49055 19295654599c9d3e dc3483f59c7a4458 3e7636c4a9fb6cbe 918b145b0d0d17a4 31cb778d01c73e69
+ eea501abfd750160 015c8d0dbc2142bb 57f779d09d74f2c7 34dc0122758f35c2 4f2567b5803205d3 fdcfb71a23dac078 413d4614c7c1e207 d05ebc629af3b0a9
+ c0485c4c0f7777f3 bafeff82fa97f876 31c293c4463dcaec 91b8f31b40a211e7 dcc77cf5cbf0c8ae 16e3860278700c36 65f1a17661838106 a5513207a9460e57
+ 22de9940c8761182 ca2436c061ec9651 d55d12e794742ec5 d142d7fc2b40cfc8 a6c37fdc92942523 8ff14ee6d27ac374 fb13fcd25ebdd648 2e6b96e41abd56fd
+ 99131534f602ebb5 482b4ea86ee20c8b 2dbe521c430f9122 a3e1681d173eb0ec 6d24a6c0f1c48391 82bfa70db06e1333 3df6f39043afc1d1 7e42d676048e20de
+ 4b343f3755acc593 01eced4ce52aec82 d32f61f61a47e3b0 cabf2e13705390e2 9e31b112ad737b97 814950ce2f774280 0dded987b2cdf094 1762497ad03cf300
+ 67d275800edf36b2 8cc886b92c54377b 7c6105e2bdcf3c8c 84a31ecf1d795053 3b455c63d0ef44fa 2b7d32f909e20d4d cd42b56abcfd398e 173dfb55c02ad146
+ 217396063a45fe2a 546e08f7fb506429 d0f9214a4417115d 06e0f059758ecae2 25f95c073ed538f2 4089d0dd8e4f1e46 5433e8073f0c2e28 c94a741ec82d9941
+ 59840126c35e0797 8de1743c3177837b d4f537499154d7db d8bce07037af6b55 eebaaa0fd6372d30 01b208deb3294322 81fe8d56e7914220 608106fdd6ccf70f
+ d94f2bbd6734b5df d7ca873b32b001b3 e9b1fefe5d369665 ef318f43e7a9378d 85cc5f30500ce52f 80998ad00ac680f0 533a6f9ed48d7c9e 1d41ea9bdd69fedc
+ b7591dc53f875c60 1af810d306ebd946 85bf0815099078d8 5f9a7c26af1a0e28 c94586a357d7a7b7 cd31dd97ffacc390 b6d1c9401362fb78 fef5364bf99334a5
+ 16efa5f90a89d7e9 3d07cfff4f070a79 166524902f36ae1b c7d6cb52440004f0 b620eab89a0a15b6 bcb8161ba89b178b affe598c84b191f7 26ab486214a0cae7
+ 3d425d4f7ac30740 aa7a3ff9ac63ff1c c66a9227ef4347f4 6748b83a2a740f09 6d71e5bd8af36a79 e9f1261cfdbfb913 5015ee0471782e7d 5e7a1c36fc547706
+T1  i 414720  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 c524e4eab3176e2f k 00000000000000ff t 0000000000000078
+T2  i 0  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 b1f06c1eee1c052f k 302ed5ce372622b9 t 0000000000000078
+T3  i 0  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 b1f06c1e5fec6931 k 302ed5ce372622b9 t 0000000000000000
+T3  i 0  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 b1f06c1e5fec6931 k 1cb0e647e057c923 t 0000000000000031
+T3  i 0  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 bc97c48527cd8131 k 1cb0e647e057c923 t 0000000000000031
+T3  i 0  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 138778f5d1d34364 k 1cb0e647e057c923 t 2b992ddfa2324a16
+T3  i 0  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 f7e7996596758cac k 1cb0e647e057c923 t 2b992ddfa2324a16
+T3  i 0  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 51bdcc1596758cac k 1cb0e647e057c923 t 0000000000000000
+T4  i 0  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 51bdcc15c7c840b9 k 1cb0e647e057c923 t 0000000000000000
+T2  i 1  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 c394c99ec736c7b9 k 482b4ea86ee20c8b t 0000000000000000
+T3  i 1  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 c394c99e04a20e27 k 482b4ea86ee20c8b t 0000000000000000
+T3  i 1  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 c394c99e04a20e27 k e2d757222d8fd62e t 0000000000000027
+T3  i 1  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 d4084a6a5de44a27 k e2d757222d8fd62e t 0000000000000027
+T3  i 1  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 3a37f21087fa085a k e2d757222d8fd62e t 2b992ddfa2324a17
+T3  i 1  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 40ed41e6b4645765 k e2d757222d8fd62e t 2b992ddfa2324a17
+T3  i 1  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 769064a1dc645765 k e2d757222d8fd62e t 0000000000000000
+T4  i 1  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 769064a1aaf433c4 k e2d757222d8fd62e t 0000000000000000
+T2  i 2  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 02e38d6db31cb1c4 k 9e31b112ad737b97 t 0000000000000000
+T3  i 2  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 02e38d6db1ff3ca9 k 9e31b112ad737b97 t 0000000000000000
+T3  i 2  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 02e38d6db1ff3ca9 k 52cf86b6c6751777 t 00000000000000a9
+T3  i 2  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 7c22804bfe7334a9 k 52cf86b6c6751777 t 00000000000000a9
+T3  i 2  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 d20da43ef88917dc k 52cf86b6c6751777 t 2b992ddfa2324a16
+T3  i 2  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 5e56218daaf6c5fa k 52cf86b6c6751777 t 2b992ddfa2324a16
+T3  i 2  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 094ce787aaf6c5fa k 52cf86b6c6751777 t 0000000000000001
+T4  i 2  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 094ce787a3ba227c k 52cf86b6c6751777 t 0000000000000001
+T2  i 3  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 3ac1693b9ce7ba7c k 8dd509b56758059d t 0000000000000001
+T3  i 3  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 3ac1693ba626d347 k 8dd509b56758059d t 0000000000000000
+T3  i 3  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 3ac1693ba626d347 k 6ec2dc89ad770109 t 0000000000000047
+T3  i 3  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 65aa2ac623b0d947 k 6ec2dc89ad770109 t 0000000000000047
+T3  i 3  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 c895d2b4ddcfbb72 k 6ec2dc89ad770109 t 2b992ddfa2324a16
+T3  i 3  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 5c6d90aa3c3d3e87 k 6ec2dc89ad770109 t 2b992ddfa2324a16
+T3  i 3  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 a3f5387b1c3d3e87 k 6ec2dc89ad770109 t 0000000000000000
+T4  i 3  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 a3f5387bbfc806fc k 6ec2dc89ad770109 t 0000000000000000
+T2  i 4  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 14bc737b39c115fc k 6d71e5bd8af36a79 t 0000000000000000
+T3  i 4  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 14bc737b2d7d6687 k 6d71e5bd8af36a79 t 0000000000000000
+T3  i 4  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 14bc737b2d7d6687 k e2b17dac87777733 t 0000000000000087
+T3  i 4  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 f07d83c8d292de87 k e2b17dac87777733 t 0000000000000087
+T3  i 4  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 47a0b9b20ca9bdb2 k e2b17dac87777733 t 2b992ddfa2324a16
+T3  i 4  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 01b302b36504eb80 k e2b17dac87777733 t 2b992ddfa2324a16
+T3  i 4  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 ae8c43ee4504eb80 k e2b17dac87777733 t 0000000000000000
+T4  i 4  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 ae8c43eeeb88a86e k e2b17dac87777733 t 0000000000000000
+T2  i 5  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 33c83085b0653f6e k c533878155fa1681 t 0000000000000000
+T3  i 5  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 33c8308583ad0feb k c533878155fa1681 t 0000000000000000
+T3  i 5  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 33c8308583ad0feb k 9b6508f95f6c5c67 t 00000000000000eb
+T3  i 5  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 2ad6b3f690850ceb k 9b6508f95f6c5c67 t 00000000000000eb
+T3  i 5  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 8d4669844a9bcf1e k 9b6508f95f6c5c67 t 2b992ddfa2324a16
+T3  i 5  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 211eb28a30c22127 k 9b6508f95f6c5c67 t 2b992ddfa2324a16
+T3  i 5  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 6736f6af10c22127 k 9b6508f95f6c5c67 t 0000000000000000
+T4  i 5  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 6736f6af77f4d788 k 9b6508f95f6c5c67 t 0000000000000000
+T2  i 6  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 17a4a7ee1aa13588 k 59cf612e10923e34 t 0000000000000000
+T3  i 6  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 17a4a7ee0d059266 k 59cf612e10923e34 t 0000000000000000
+T3  i 6  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 17a4a7ee0d059266 k f69b4230676d8819 t 0000000000000066
+T3  i 6  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 9d2b51f2f9200366 k f69b4230676d8819 t 0000000000000066
+T3  i 6  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 f3128b87e23ec693 k f69b4230676d8819 t 2b992ddfa2324a16
+T3  i 6  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 86eaf351ba993037 k f69b4230676d8819 t 2b992ddfa2324a16
+T3  i 6  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 be3e19589a993037 k f69b4230676d8819 t 0000000000000000
+T4  i 6  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 be3e195824a7296f k f69b4230676d8819 t 0000000000000000
+T2  i 7  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 5a68386f7fc0d26f k d8e2dfc5d288a14a t 0000000000000000
+T3  i 7  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 5a68386f25a8ea01 k d8e2dfc5d288a14a t 0000000000000001
+T3  i 7  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 5a68386f25a8ea01 k b6662bcdb8f013b3 t 0000000000000001
+T3  i 7  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 691284091ccb4601 k b6662bcdb8f013b3 t 0000000000000001
+T3  i 7  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 cf3db871c6d10434 k b6662bcdb8f013b3 t 2b992ddfa2324a16
+T3  i 7  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 5b857a9938f9c8ea k b6662bcdb8f013b3 t 2b992ddfa2324a16
+T3  i 7  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 947f438338f9c8ea k b6662bcdb8f013b3 t 0000000000000000
+T4  i 7  j 24  lbh 32  lbq 16  lbt 22  gap 0  lbits 64
+  lmask ffffffffffffffff s0 947f4383ac868b69 k b6662bcdb8f013b3 t 0000000000000000
+T0 exiting hpceshort  ptx 1ce25bcb4eab6c30 ctx 1ce25bcb4eab6c30 lbits 64
+ 1ce25bcb4eab6c30

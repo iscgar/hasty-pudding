@@ -1,0 +1,354 @@
+Hasty Pudding Cipher  --  README2 file  --  July 1998
+
+This file contains general information about the cipher implementation,
+including how to compile it and run the various tests.
+
+The files hpc-ansi.c, hpc-gcc.c, hpc_algo.jav, and hpc_stan.jav all
+implement the same cipher.
+
+
+
+THE C SOURCE CODE
+
+The Hasty Pudding Cipher is fundamentally a 64-bit cipher, and it performs
+best on 64-bit machines such as the DEC Alpha.  It performs reasonably well
+on 32-bit machines when compiled with a complier that supports a 64-bit
+integer data type.  This includes GCC, which has a 64-bit "long long" data
+type.  Unfortunately, the ANSI definition of C doesn't yet include "long
+long", so a workaround is used for the reference implementation.  The
+workaround defines a 64-bit data structure U64 (the U is for unsigned)
+and some macros to manipulate the structure.  This provides an ANSI compliant
+implementation, but at a significant performance penalty.  The macros also
+impact on the readability of the algorithm code.
+
+hpc-gcc.c is the GCC version of the algorithm.
+hpc-ansi.c is the ANSI compliant version, with macros implementing the
+64-bit integers.
+
+Auxiliary files:
+
+hpc.h is used only when compiling for the NIST API.  It is inserted
+conditionally, when the compile switch -DMAIN is not in effect.
+If the Cipher is compiled standalone, hpc.h is not used.
+
+hpc-nist.c is a test file to exercise the non-standalone version of the
+Cipher.  It makes a few calls to the functions that implement the NIST
+API.
+
+
+Compilation of the C version:
+
+To compile a standalone version, including a command line interface.
+The interface is described in the file hpc.hlp.
+
+    gcc -o hpc-standalone -O4 -DMAIN hpc-gcc.c
+
+or
+
+    cc -o hpc-standalone -O4 -DMAIN hpc-ansi.c
+
+Either hpc-gcc.c or hpc-ansi.c may be used, but I recommend the -gcc
+version if your compiler can handle it.
+The -O4 selects a compiler optimization level.  The meaning varies from
+compiler to compiler -- select whatever is appropriate for your environment.
+
+To compile the Cipher as a set of linkable subroutines, presumably to be
+called from the NIST API.
+
+    cc -o hpc.o hpc-ansi.c
+
+To compile the Cipher for the NIST API, including some test functions that
+exercise the interface to the API:
+
+    cc -o hpc-nist-api hpc-nist.c hpc-ansi.c
+
+The program may be run simply by typing "hpc-nist-api".  It ignores any
+arguments offered, and simply runs a few tests calling the Cipher through
+the NIST API defined functions.
+
+
+Important compile switches:
+
+Include in the compilation command as needed, preceding the source file names.
+
+-DOPT128  selects the optimized code for the 128-bit blocksize.
+
+The Cipher will contain additional code that checks calls to encryption or
+decryption to see if the blocksize is 128 bits, and if the last 7 words of
+spice are 0.  If so, the optimized version of the Cipher is used.  If not,
+the regular version is called.  The Cipher will operate correctly for any
+blocksize and spice values; it will just be faster for certain combinations.
+The optimized code is written to allow the first word of the spice to have
+any value, to provide some spice functionality in the optimized routine.
+
+To compile an optimized standalone version ...
+
+    gcc -o hpc-opt -O4 -DMAIN -DOPT128 hpc-gcc.c
+
+The flag may also be used with hpc-ansi.c, and with the non-standalone
+compilations.
+
+Tracing:
+The Cipher implementation contains about 30 trace points.
+
+-DTRACE  includes tracing code in the compiled binary.
+
+The trace code doesn't change any Cipher behavior, merely slowing it
+down some.  It is silent unless activated by setting the global variable
+"trace".  Usually this would be done from the command line, but you could
+also set it with a debugger, or even compile in a nonzero value.
+The hpc.hlp file explains how to use the -t switch to set "trace" from
+the command line.  Each trace point inspects a bit in the trace
+variable, and if the bit is 1, various information is printed.
+(You will need the program source to understand the printout.)
+
+
+More compile switches:
+
+-DLONG_LONG_AVAILABLE is used if the compiler supports a 64-bit long long
+integer data type.  The source code is set to default this based on your
+choice of hpc-gcc or hpc-ansi.
+
+-DALPHA selects code for 64-bit machines.  This redefines some data types.
+
+-DPR32  compensates for a bug in older Sun libraries, where printf doesn't
+handle the directives for 64-bit integers properly.  Probably you'll never
+need this.
+
+-DCBO includes code to reverse the byte order for most 64-bit hex printouts.
+This may be helpful for comparing the output to Crpytix generated files.
+It's a kludge, since the reversal is not uniform throughout the program.
+Command line input byte order is unchanged.  The code is turned on with
+command line flag -cbo.  On my low end Sparcstation, the combination
+"gcc -O4 -DMAIN -DPR32 -DCBO" blows the compiler out of the water.  If this
+happens to you, try dropping -DCBO or -O4.
+
+
+
+GENERATING THE NIST REQUIRED TEST FILES
+
+To generate the seven required test files, compile the program standalone:
+
+    gcc -o hpc -DMAIN hpc-ansi.c    (or hpc-gcc.c)
+
+Then run it with the -nist switch:
+
+    hpc -nist
+
+The program will create the seven required files with the Known Answer
+and Monte Carlo tests, also including a test file for the internal program
+tables.  The program will print progress messages as it begins each file.
+If the output is to be compared with Cryptix generated files, it may help
+to include the -cbo flag.
+
+    hpc -cbo -nist
+
+This doesn't reorder the tests, but may assist in matching up the outputs.
+
+
+
+THE JAVA VERSION
+
+Java provides a 64-bit integer data type.  The type is considered signed,
+but the signed-ness can be ignored in almost all cases:  Bitwise logical
+operations treat the sign bit as just another bit, and addition/subtraction/
+multiplication are all (mod 2^64) anyway.  The Cipher does no compares of
+64-bit quantities that would be affected by signs, and no signed divisions.
+The one operation where sign is important is right-shift, and Java provides
+an unsigned-right-shift operator.
+
+hpc_stan.jav is a standalone version of the algorithm, with a command line
+interface.  The interface is the same as for the C version, except that a
+couple of the latest test functions aren't implemented in the Java code.
+I compiled the standalone version (using the pretruncation filename) with
+
+    javac HPC_standalone.java
+
+To run the standalone version, try
+
+    java HPC_standalone -spi 1 -k x -ia abracadabra -eink
+    nSP%$Z>UNOb
+
+This illustrates using the cipher to encrypt printable ascii characters
+into printable ascii characters.  The spice is incremented for each
+character, so the four "a"s in the plaintext all encrypt differently.
+Check the decryption with
+
+    java HPC_standalone -spi 1 -k x -ia 'nSP%$Z>UNOb' -dink
+    abracadabra
+
+(The quotes keep the shell from interpreting the blob of special characters.)
+
+hpc_algo.jav is the cipher algorithm, set up to interface with the simple
+Cryptix/NIST API.  I've followed the Cryptix recipe for creating hpc.jar.
+The recipe also builds hpc_prop.jav.
+To run the NIST/Cryptix API version,
+
+    java HPC.HPC_Algorithm
+
+On my system, this looks inside hpc.jar to find the algorithm.
+
+Caution:  The byte order of the Cryptix/NIST API differs from the Hasty
+Pudding Cipher ordering.  For example, the Cryptix version reports
+
+    KEY=000102030405060708090A0B0C0D0E0F
+    ...
+    PT=000102030405060708090A0B0C0D0E0F
+    CT=8B0E962B3E3B0079D5973A67B23418CC
+
+while the C standalone version gives
+
+    hpc -kxs 07060504030201000f0e0d0c0b0a0908 -ixs   \
+                07060504030201000f0e0d0c0b0a0908 -e
+    79003b3e2b960e8b cc1834b2673a97d5
+
+The Java standalone version also gives
+
+    java HPC_standalone -kxs 07060504030201000f0e0d0c0b0a0908 -ixs   \
+                07060504030201000f0e0d0c0b0a0908 -e
+    79003b3e2b960e8b cc1834b2673a97d5
+
+The Cryptix interface prints 64-bit words in hex with the low-order byte
+first, while my interface prints high-order byte first.  I added a command-
+line switch, -cbo, which reverses the byte order on hex printouts.
+
+    hpc -cbo -kxs 07060504030201000f0e0d0c0b0a0908 -ixs   \
+                07060504030201000f0e0d0c0b0a0908 -e
+    8b0e962b3e3b0079 d5973a67b23418cc
+
+Now the result matches the Cryptix version.  The Java standalone version
+also contains the -cbo switch.
+
+The Java version doesn't have the tracing code that the C version does.
+
+
+
+TEST FILES
+
+The standalone C version can be used to create the NIST test files.
+
+    hpc -nist
+
+creates seven test files, cbc_d_m.txt, cbc_e_m.txt, ecb_d_m.txt,
+ecb_e_m.txt, ecb_vk.txt, ecb_vt.txt, and ecb_tbl.txt.
+All seven test files use spice = 0 for the encryptions.
+The file ecb_tbl.txt has test values to verify internal program tables.
+Four internal tables (PERMA, PERMAI, PERMB, and PERMBI) are used for
+blocksizes 7-15 and 36-64.
+
+There are three ways to vary the test files:
+Two numeric arguments to the -nist switch can change the outer and inner
+loop counts for the Monte Carlo tests.
+If a backup argument is supplied with the -b switch, encryption is changed
+to the backup encryption.
+If the -DCBO switch is used in compilation, the command line flag -cbo
+is available.  This reverses the byte order in hex printouts.  (The program
+does the same encryptions -- only the output routine is diddled.)  This
+is helpful in matching up the MCT files with the Cryptix Java versions.
+
+The standalone Java version can also make the test files.
+
+    java HPC_standalone -nist
+
+It takes a while, but writes all seven test files.
+
+
+
+Other Test Files
+
+The file len-scan.gz contains one encryption for each blocksize from
+1-1200 bits.  It was created with the command
+
+    hpc -spi 1 -k x -ilen 1200 -ia a -ebot 1 > len-scan-1200
+
+The key used is an ascii "x".  The plaintext is a single ascii "a",
+0-padded to make up the blocklength.
+
+The file kxexampl contains four examples of key expansion.
+The files abc and alpha* are test files for key expansion.
+
+The file mct-test explains the Monte Carlo tests for various blocksizes.
+Mct1 to mct18 are results of Monte Carlo testing.  Mct11 is a torture test.
+
+
+
+OTHER TESTING
+
+The command
+
+    hpc -lentest
+
+exercises encryption and decryption.  The default is to do 20 tests for
+each blocksize from 1 to 1200.  hpc.hlp explains the optional arguments.
+The test uses random plaintext/ciphertext, random keys, & random spice.
+It checks that the encryption-decryption cycle restores the plaintext,
+and that decryption-encryption also restores the starting value.
+It checks that no extra bits are stomped in partial output words, and
+that encryption and decryption operations work in-place.  Lentest has a
+maximum blocksize of 1280 bits, because of some statically allocated
+tables.
+
+
+
+INTERNAL TRACES
+
+To help implementors, I've provided traces of internal program values for
+one key expansion and for encryptions with a selection of blocksizes.
+These trace files are most helpful when correlated with the program source
+code.
+
+Some cautions:  Not all internal variables are used for every blocksize.
+Variables are not necessarily initialized before the first trace point,
+and may contain garbage.  Some variables contain unused high-order bits.
+
+Tracing code is compiled into the program with the -DTRACE switch.
+The command line switch -t ### is used to turn on trace points.
+
+The key expansion trace was created with the command
+
+    hpc -t 0xfff8000 -k a -pka > trace-hpcksu
+
+This corresponds to an 8-bit key, with the ascii value for "a".
+(Key expansion doesn't depend on the spice.)
+The key is expanded with subcipher number 0.  (Real subciphers are 1-5.)
+The file has been compressed, and the filename truncated.  It shows up
+on the diskettte as trace-hp.gz.
+
+The files tr*e.gz contain a trace of encryption for various block sizes.
+The trace points are defined by the source code.
+Each encryption uses a one-byte key, ascii "x".
+The spice is {1,0,0,0,0,0,0,0}.
+The plaintext is a single ascii "a", right justified in the first word of
+the plaintext block.  The rest of the plaintext is 0.  For blocksizes less
+than 8 bits, the high-order bits of the "a" are ignored.
+The -DOPT128 code was used for blocksize 128.  The trace points are the
+same as for the unoptimized code.
+The commands to create the trace files:
+
+    hpc -spi 1 -k x -t 0x7c00 -ilen 1 -ia a -e > tr1e
+    hpc -spi 1 -k x -t 0x7c00 -ilen 2 -ia a -e > tr2e
+    hpc -spi 1 -k x -t 0x7c00 -ilen 3 -ia a -e > tr3e
+    hpc -spi 1 -k x -t 0x7c00 -ilen 4 -ia a -e > tr4e
+    hpc -spi 1 -k x -t 0x7c00 -ilen 5 -ia a -e > tr5e
+    hpc -spi 1 -k x -t 0x7c00 -ilen 6 -ia a -e > tr6e
+    hpc -spi 1 -k x -t 0x7c00 -ilen 7  -ia a -e > tr7e
+    hpc -spi 1 -k x -t 0x7c00 -ilen 15  -ia a -e > tr15e
+    hpc -spi 1 -k x -t 0x7c00 -ilen 16  -ia a -e > tr16e
+    hpc -spi 1 -k x -t 0x7c00 -ilen 35 -ia a -e > tr35e
+    hpc -spi 1 -k x -t 0x21f -ilen 36 -ia a -e > tr36e
+    hpc -spi 1 -k x -t 0x21f -ilen 64 -ia a -e > tr64e
+    hpc -spi 1 -k x -t 0x27d -ilen 65 -ia a -e > tr65e
+    hpc -spi 1 -k x -t 0x27d -ilen 127 -ia a -e > tr127e
+    hpc -spi 1 -k x -t 0x27d -ilen 128 -ia a -e > tr128e  (optimized C)
+    hpc -spi 1 -k x -t 0x27d -ilen 129 -ia a -e > tr129e
+    hpc -spi 1 -k x -t 0x27d -ilen 512 -ia a -e > tr512e
+    hpc -spi 1 -k x -t 0x2ff -ilen 513 -ia a -e > tr513e
+    hpc -spi 1 -k x -t 0x2ff -ilen 1024 -ia a -e > tr1024e
+
+Tracing code is disabled in the Java version -- no macros, and it's
+supposed to be "optimized".
+
+Comments & bug reports are welcome.
+
+Rich Schroeppel   rcs@cs.arizona.edu
+
