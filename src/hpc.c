@@ -29,7 +29,7 @@ extern "C" {
 
 static size_t hpc_get_cipher_id(size_t data_bit_size);
 
-/* The backup argument is only used by HPC-tiny, but is provided to every implmentation for consistency */
+/* The backup argument is only used by HPC-tiny, and the plaintext and ciphertext arguments are only used by HPC-extended, but they're provided to every implmentation for consistency */
 static void hpc_tiny_encrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, const uint8_t *plaintext, uint8_t *o_ciphertext, size_t block_size, uint64_t mask, size_t backup);
 static void hpc_tiny_decrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, const uint8_t *ciphertext, uint8_t *o_plaintext, size_t block_size, uint64_t mask, size_t backup);
 static void hpc_short_encrypt(uint64_t *state, const uint64_t *spice, const uint64_t *KX, const uint8_t *plaintext, uint8_t *o_ciphertext, size_t block_size, uint64_t mask, size_t backup);
