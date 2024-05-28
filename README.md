@@ -34,3 +34,19 @@ only works with 128-bit blocks, for example).
 ## License
 
 This library is licensed under the MIT license. See [LICENSE](LICENSE) for details.
+
+
+## Deviations from the spec
+
+This implementation deviates from the spec because the test vectors indicated otherwise
+and the implementation was set so that they pass:
+
+ * In HPC-tiny, the spec says that for 4 bits the cipher should first add, then XOR.
+   The test vectors only pass if the order is XOR then add, as is for the block sizes of 2
+   and 3 bits.
+
+ * In HPC-extended, the spec says that the pre-mixing should run for 4 iterations. However,
+   the test vectors only pass if 3 iterations are used.
+
+ * Similarly, in HPC-extended, the intermissions are specified to run 3 iterations of the
+   stirring function, but the test vectors only pass when 2 iterations are used.
