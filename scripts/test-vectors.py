@@ -74,7 +74,7 @@ def fold_data_words(w):
     return sum(x << (i * 64) for i, x in enumerate(w))
 
 
-def generate_mct(seed, block_size, key_size, n):
+def generate_mct(seed, block_size, key_size, n, op):
     PI19 = 3141592653589793238
     MASK = (1 << 64) - 1
 
@@ -118,30 +118,10 @@ def generate_mct(seed, block_size, key_size, n):
         tests.append({
             'key': key,
             'spice': spi,
-            'ptxt': pt
+            'ptxt' if op == 'encryption' else 'ctxt': pt
         })
 
     return tests
-
-
-def generate_and_sum_mct(seed, block_size, key_size, n):
-    tests = generate_mct(seed, block_size, key_size, n)
-    key_xor = functools.reduce(
-        operator.xor,
-        (fold_data_words(t['key']) for t in tests))
-    key_sum = sum(
-        fold_data_words(t['key']) for t in tests)
-    spi_xor = functools.reduce(
-        operator.xor,
-        (fold_data_words(t['spice']) for t in tests))
-    spi_sum = sum(
-        fold_data_words(t['spice']) for t in tests)
-    ptxt_xor = functools.reduce(
-        operator.xor,
-        (fold_data_words(t['ptxt']) for t in tests))
-    ptxt_sum = sum(
-        fold_data_words(t['ptxt']) for t in tests)
-    return tests, (key_xor, key_sum), (spi_xor, spi_sum), (ptxt_xor, ptxt_sum)
 
 
 def parse_mct(inp):
@@ -156,19 +136,18 @@ def parse_mct(inp):
         seed = int(seed, 16)
         backup = int(backup, 16)
         all_backup = backup & 0xf
-        backup = [all_backup + ((backup >> (n * 4)) & 0xf) for n in range(1, 6)]
+        backup = [all_backup + ((backup >> (n * 4)) & 0xf) for n in range(1, 7)]
 
         current_key_size = 0
         current_block_size = 0
-        key_xor = 0
-        spi_xor = 0
-        ptxt_xor = 0
-        ctxt_xor = 0
-        key_sum = 0
-        spi_sum = 0
-        ptxt_sum = 0
-        ctxt_sum = 0
-        generated = False
+        key_xor = None
+        spi_xor = None
+        ptxt_xor = None
+        ctxt_xor = None
+        key_sum = None
+        spi_sum = None
+        ptxt_sum = None
+        ctxt_sum = None
         current_tests = []
         for l in f:
             l = l.rstrip()
@@ -177,15 +156,88 @@ def parse_mct(inp):
                 continue
 
             if all(c == ord(b'=') for c in l):
+                generated = False
+                if not current_tests and current_block_size:
+                    current_tests = generate_mct(
+                        seed, current_block_size, current_key_size,
+                        test_per_bs, op)
+                    generated = True
+
+                kmask = (1 << current_key_size) - 1
+                smask = (1 << 512) - 1
+
+                for i, t in enumerate(current_tests):
+                    if op == 'encryption':
+                        r = hpc_dll.encrypt(
+                            t['key'], current_key_size, backup,
+                            t['ptxt'], current_block_size, t['spice'])
+                        if generated:
+                            t['ctxt'] = r
+                        expected = t['ctxt']
+                    else:
+                        r = hpc_dll.decrypt(
+                            t['key'], current_key_size, backup,
+                            t['ctxt'], current_block_size, t['spice'])
+                        if generated:
+                            t['ptxt'] = r
+                        expected = t['ptxt']
+
+                    if r != expected:
+                        print(
+                            f'failed to do {op} for bs={current_block_size}, '
+                            f'ks={current_key_size}, tid={i}. '
+                            'expected [{}], got [{}]'.format(
+                                ', '.join(f'{x:016x}' for x in expected),
+                                ', '.join(f'{x:016x}' for x in r)))
+
+                    if key_xor is not None:
+                        key_xor ^= fold_data_words(t['key'])
+                    if key_sum is not None:
+                        key_sum -= fold_data_words(t['key'])
+
+                    if spi_xor is not None:
+                        spi_xor ^= fold_data_words(t['spice'])
+                    if spi_sum is not None:
+                        spi_sum -= fold_data_words(t['spice'])
+
+                    if ptxt_xor is not None:
+                        ptxt_xor ^= fold_data_words(t['ptxt'])
+                    if ptxt_sum is not None:
+                        ptxt_sum -= fold_data_words(t['ptxt'])
+
+                    if ctxt_xor is not None:
+                        ctxt_xor ^= fold_data_words(t['ctxt'])
+                    if ctxt_sum is not None:
+                        ctxt_sum -= fold_data_words(t['ctxt'])
+
+                if key_sum:
+                    key_sum &= (1 << current_key_size) - 1
+                if spi_sum:
+                    spi_sum &= (1 << 512) - 1
+
+                bmask = (1 << ((current_block_size + 63) & ~63)) - 1
+                if ptxt_sum:
+                    ptxt_sum &= bmask
+                if ctxt_sum:
+                    ctxt_sum &= bmask
+
                 if current_tests:
+                    assert not key_xor
+                    assert not key_sum
+                    assert not spi_xor
+                    assert not spi_sum
+                    assert not ptxt_xor
+                    assert not ptxt_sum
+                    assert not ctxt_xor
+                    assert not ctxt_sum
                     tests.setdefault(current_block_size, {}).setdefault(
                         current_key_size, []).extend(current_tests)
 
                 current_block_size = current_key_size = 0
-                key_xor = spi_xor = 0
-                ptxt_xor = ctxt_xor = 0
-                key_sum = spi_sum = 0
-                ptxt_sum = ctxt_sum = 0
+                key_xor = spi_xor = None
+                ptxt_xor = ctxt_xor = None
+                key_sum = spi_sum = None
+                ptxt_sum = ctxt_sum = None
                 current_tests.clear()
             else:
                 keyword, data = l.split(b'=', 1)
@@ -209,129 +261,43 @@ def parse_mct(inp):
                     assert len(parsed_words) == (current_block_size + 63) // 64
                     assert parsed_words[-1] < (1 << (64 if current_block_size % 64 == 0 else current_block_size % 64))
                     current_tests[-1][keyword] = parsed_words
-                    if keyword == 'ptxt':
-                        ptxt_xor ^= fold_data_words(parsed_words)
-                        ptxt_sum += fold_data_words(parsed_words)
-                    else:
-                        ctxt_xor ^= fold_data_words(parsed_words)
-                        ctxt_sum += fold_data_words(parsed_words)
                 elif keyword == b'KEY':
                     assert current_tests and 'key' not in current_tests[-1]
                     parsed_words = parse_data_words(data)
                     assert len(parsed_words) == (current_key_size + 63) // 64
                     assert parsed_words[-1] < (1 << (64 if current_key_size % 64 == 0 else current_key_size % 64))
                     current_tests[-1]['key'] = parsed_words
-                    key_xor ^= fold_data_words(parsed_words)
-                    key_sum += fold_data_words(parsed_words)
                 elif keyword == b'SPI':
                     assert current_tests and 'spice' not in current_tests[-1]
                     parsed_words = parse_data_words(data)
                     assert len(parsed_words) <= 8
                     current_tests[-1]['spice'] = parsed_words
-                    spi_xor ^= fold_data_words(parsed_words)
-                    spi_sum += fold_data_words(parsed_words)
                 elif keyword == b'KEYXOR':
-                    if not current_tests:
-                        (current_tests,
-                            (key_xor, key_sum),
-                            (spi_xor, spi_sum),
-                            (ptxt_xor, ptxt_sum)) = generate_and_sum_mct(
-                                seed, current_block_size,
-                                current_key_size, test_per_bs)
-                        generated = True
                     parsed_words = parse_data_words(data)
-                    assert key_xor == fold_data_words(parsed_words)
+                    key_xor = fold_data_words(parsed_words)
                 elif keyword == b'KEYSUM':
-                    if not current_tests:
-                        (current_tests,
-                            (key_xor, key_sum),
-                            (spi_xor, spi_sum),
-                            (ptxt_xor, ptxt_sum)) = generate_and_sum_mct(
-                                seed, current_block_size,
-                                current_key_size, test_per_bs)
-                        generated = True
                     parsed_words = parse_data_words(data)
-                    key_sum &= (1 << current_key_size) - 1
-                    assert key_sum == fold_data_words(parsed_words)
+                    key_sum = fold_data_words(parsed_words)
                 elif keyword == b'SPIXOR':
-                    if not current_tests:
-                        (current_tests,
-                            (key_xor, key_sum),
-                            (spi_xor, spi_sum),
-                            (ptxt_xor, ptxt_sum)) = generate_and_sum_mct(
-                                seed, current_block_size,
-                                current_key_size, test_per_bs)
-                        generated = True
                     parsed_words = parse_data_words(data)
-                    assert spi_xor == fold_data_words(parsed_words)
+                    spi_xor = fold_data_words(parsed_words)
                 elif keyword == b'SPISUM':
-                    if not current_tests:
-                        (current_tests,
-                            (key_xor, key_sum),
-                            (spi_xor, spi_sum),
-                            (ptxt_xor, ptxt_sum)) = generate_and_sum_mct(
-                                seed, current_block_size,
-                                current_key_size, test_per_bs)
-                        generated = True
                     parsed_words = parse_data_words(data)
-                    spi_sum &= (1 << 512) - 1
-                    assert spi_sum == fold_data_words(parsed_words)
+                    spi_sum = fold_data_words(parsed_words)
                 elif keyword == b'PTXTXOR':
-                    if not current_tests:
-                        (current_tests,
-                            (key_xor, key_sum),
-                            (spi_xor, spi_sum),
-                            (ptxt_xor, ptxt_sum)) = generate_and_sum_mct(
-                                seed, current_block_size,
-                                current_key_size, test_per_bs)
-                        generated = True
                     parsed_words = parse_data_words(data)
-                    assert ptxt_xor == fold_data_words(parsed_words)
+                    ptxt_xor = fold_data_words(parsed_words)
                 elif keyword == b'PTXTSUM':
-                    if not current_tests:
-                        (current_tests,
-                            (key_xor, key_sum),
-                            (spi_xor, spi_sum),
-                            (ptxt_xor, ptxt_sum)) = generate_and_sum_mct(
-                                seed, current_block_size,
-                                current_key_size, test_per_bs)
-                        generated = True
                     parsed_words = parse_data_words(data)
-                    ptxt_sum &= (1 << ((current_block_size + 63) & ~63)) - 1
-                    assert ptxt_sum == fold_data_words(parsed_words)
+                    ptxt_sum = fold_data_words(parsed_words)
                 elif keyword == b'CTXTXOR':
-                    if current_tests and not generated:
-                        parsed_words = parse_data_words(data)
-                        assert ctxt_xor == fold_data_words(parsed_words)
+                    parsed_words = parse_data_words(data)
+                    ctxt_xor = fold_data_words(parsed_words)
                 elif keyword == b'CTXTSUM':
-                    if current_tests and not generated:
-                        parsed_words = parse_data_words(data)
-                        ctxt_sum &= (1 << ((current_block_size + 63) & ~63)) - 1
-                        assert ctxt_sum == fold_data_words(parsed_words)
+                    parsed_words = parse_data_words(data)
+                    ctxt_sum = fold_data_words(parsed_words)
                 else:
                     raise ValueError(f'Unknown keyword `{keyword}`')
-
-    for bs, bv in tests.items():
-        for ks, kv in bv.items():
-            for i, t in enumerate(kv):
-                if op == 'encryption':
-                    r = hpc_dll.encrypt(
-                        t['key'], ks, backup,
-                        t['ptxt'], bs, t['spice'])
-                    expected = t['ctxt']
-                else:
-                    r = hpc_dll.decrypt(
-                        t['key'], ks, backup,
-                        t['ctxt'], bs, t['spice'])
-                    expected = t['ptxt']
-
-                if r != expected:
-                    print(
-                        f'failed to do {op} for bs={bs}, ks={ks}, tid={i}. '
-                        'expected [{}], got [{}]'.format(
-                            ', '.join(f'{x:016x}' for x in expected),
-                            ', '.join(f'{x:016x}' for x in r)))
-
 
     return {
         'op': op,
