@@ -149,22 +149,19 @@ def parse_mct(inp):
         ptxt_sum = None
         ctxt_sum = None
         current_tests = []
-        for l in f:
-            l = l.rstrip()
+        for line in f:
+            line = line.rstrip()
 
-            if not l:
+            if not line:
                 continue
 
-            if all(c == ord(b'=') for c in l):
+            if all(c == ord(b'=') for c in line):
                 generated = False
                 if not current_tests and current_block_size:
                     current_tests = generate_mct(
                         seed, current_block_size, current_key_size,
                         test_per_bs, op)
                     generated = True
-
-                kmask = (1 << current_key_size) - 1
-                smask = (1 << 512) - 1
 
                 for i, t in enumerate(current_tests):
                     if op == 'encryption':
@@ -230,7 +227,8 @@ def parse_mct(inp):
                     assert not ptxt_sum
                     assert not ctxt_xor
                     assert not ctxt_sum
-                    tests.setdefault(current_block_size, {}).setdefault(
+                    tests.setdefault(op, {}).setdefault(
+                        current_block_size, {}).setdefault(
                         current_key_size, []).extend(current_tests)
 
                 current_block_size = current_key_size = 0
@@ -240,7 +238,7 @@ def parse_mct(inp):
                 ptxt_sum = ctxt_sum = None
                 current_tests.clear()
             else:
-                keyword, data = l.split(b'=', 1)
+                keyword, data = line.split(b'=', 1)
 
                 while data.endswith(b'\\'):
                     data = data[:-1] + f.readline().strip()
@@ -300,42 +298,119 @@ def parse_mct(inp):
                     raise ValueError(f'Unknown keyword `{keyword}`')
 
     return {
-        'op': op,
         'backup': backup,
+        'mode': 'kat',
         'tests': tests
     }
 
 
-def parse_kat(inp):
+def parse_nist(inp):
     tests = {}
 
     with inp as f:
-        header = [f.readline().rstrip() for _ in range(11)]
+        # Skip pre-header comments
+        while True:
+            line = f.readline().rstrip()
+            if not line:
+                continue
+            if all(c == ord(b'=') for c in line):
+                break
 
-        op = 'encryption'
+        headers = [f.readline().rstrip() for _ in range(10)]
+        mode = 'mct' if headers[4].endswith(b'Monte Carlo Test') else 'kat'
+
+        current_op = headers[3].rsplit(None, 1)[-1].decode('utf-8').lower()
+        if current_op not in ('encryption', 'decryption'):
+            current_op = None
         backup = [0 for _ in range(6)]
 
-        block_size = 128
+        current_block_size = 128
         current_key_size = 0
         global_key = None
         global_pt = None
         current_tests = []
-        for l in f:
-            l = l.rstrip()
+        for line in f:
+            line = line.rstrip()
 
-            if not l:
+            if not line:
                 continue
 
-            if all(c == ord(b'=') for c in l):
+            if all(c == ord(b'=') for c in line):
+                op = 'encryption' if not current_op else current_op
+
+                expected_key = current_tests[0]['key']
+                expected_in = current_tests[0]['ptxt' if op == 'encryption' else 'ctxt']
+
+                for i, t in enumerate(current_tests):
+                    if mode != 'mct':
+                        expected_key = t['key']
+                        expected_in = t['ptxt' if op == 'encryption' else 'ctxt']
+
+                    if t['key'] != expected_key:
+                        raise ValueError(
+                            f'Unexpected key for bs={current_block_size}, '
+                            f'ks={current_key_size}, tid={i}. '
+                            'expected [{}], got [{}]'.format(
+                                ', '.join(f'{x:016x}' for x in expected_key),
+                                ', '.join(f'{x:016x}' for x in t['key'])))
+
+                    rinput = t['ptxt' if op == 'encryption' else 'ctxt']
+
+                    if rinput != expected_in:
+                        raise ValueError(
+                            f'Unexpected input for bs={current_block_size}, '
+                            f'ks={current_key_size}, tid={i}. '
+                            'expected [{}], got [{}]'.format(
+                                ', '.join(f'{x:016x}' for x in expected_in),
+                                ', '.join(f'{x:016x}' for x in rinput)))
+
+                    if op == 'encryption':
+                        r = rlast = rinput
+                        for it in range(10000 if mode == 'mct' else 1):
+                            rlast = r
+                            r = hpc_dll.encrypt(
+                                t['key'], current_key_size, backup,
+                                rlast, current_block_size, t['spice'])
+                        expected_r = t['ctxt']
+                    else:
+                        r = rlast = rinput
+                        for it in range(10000 if mode == 'mct' else 1):
+                            rlast = r
+                            r = hpc_dll.decrypt(
+                                t['key'], current_key_size, backup,
+                                rlast, current_block_size, t['spice'])
+                        expected_r = t['ptxt']
+
+                    if r != expected_r:
+                        print(t)
+                        raise ValueError(
+                            f'failed to do {op} for bs={current_block_size}, '
+                            f'ks={current_key_size}, tid={i}. '
+                            'expected [{}], got [{}]'.format(
+                                ', '.join(f'{x:016x}' for x in expected_r),
+                                ', '.join(f'{x:016x}' for x in r)))
+
+                    if mode == 'mct':
+                        offset = len(expected_key) - len(r)
+                        for i in range(offset):
+                            expected_key[i] ^= rlast[-offset + i]
+                        for i in range(len(r)):
+                            expected_key[offset + i] ^= r[i]
+                        expected_in = expected_r
+
                 if current_tests:
-                    tests.setdefault(block_size, {}).setdefault(
+                    tests.setdefault(op, {}).setdefault(
+                        current_block_size, {}).setdefault(
                         current_key_size, []).extend(current_tests)
 
+                current_block_size = 128
                 current_key_size = 0
                 global_key = global_pt = None
                 current_tests.clear()
             else:
-                keyword, data = l.split(b'=', 1)
+                line = line.split(b'=', 1)
+                keyword = line[0]
+                data = line[1] if len(line) > 1 else b''
 
                 while data.endswith(b'\\'):
                     data = data[:-1] + f.readline().strip()
@@ -344,7 +419,7 @@ def parse_kat(inp):
                     assert current_key_size == 0 and not current_tests
                     current_key_size = int(data)
                 elif keyword == b'I':
-                    assert int(data) == len(current_tests) + 1
+                    assert int(data) == len(current_tests) + (1 if current_block_size == 128 and not current_op else 0)
                     current_tests.append({'spice': []})
                     if global_key:
                         current_tests[-1]['key'] = global_key
@@ -352,8 +427,8 @@ def parse_kat(inp):
                         current_tests[-1]['ptxt'] = global_pt
                 elif keyword in (b'PT', b'CT'):
                     parsed_words = parse_data_words(data)
-                    assert len(parsed_words) == block_size // 64
-                    assert parsed_words[-1] < (1 << 64)
+                    assert len(parsed_words) == (current_block_size + 63) // 64
+                    assert parsed_words[-1] < (1 << (64 if current_block_size % 64 == 0 else current_block_size % 64))
                     if not current_tests and keyword == b'PT':
                         global_pt = parsed_words
                     else:
@@ -362,19 +437,28 @@ def parse_kat(inp):
                         current_tests[-1][keyword] = parsed_words
                 elif keyword == b'KEY':
                     parsed_words = parse_data_words(data)
-                    assert len(parsed_words) == current_key_size // 64
-                    assert parsed_words[-1] < (1 << 64)
+                    assert len(parsed_words) == (current_key_size + 63) // 64
+                    assert parsed_words[-1] < (1 << (64 if current_key_size % 64 == 0 else current_key_size % 64))
                     if not current_tests:
                         global_key = parsed_words
                     else:
                         assert current_tests and 'key' not in current_tests[-1]
                         current_tests[-1]['key'] = parsed_words
+                elif keyword == b'BLOCKSIZE':
+                    assert not current_tests
+                    current_block_size = int(data)
+                elif keyword == b'ENCRYPTING':
+                    assert not current_tests
+                    current_op = 'encryption'
+                elif keyword == b'DECRYPTING':
+                    assert not current_tests
+                    current_op = 'decryption'
                 else:
                     raise ValueError(f'Unknown keyword `{keyword}`')
 
     return {
-        'op': op,
         'backup': backup,
+        'mode': mode,
         'tests': tests
     }
 
@@ -383,7 +467,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('input', type=argparse.FileType('rb'))
     parser.add_argument('-l', '--library', type=HpcDll)
-    parser.add_argument('-t', '--type', required=True, choices=['mct', 'kat'])
+    parser.add_argument('-t', '--type', required=True, choices=['mct', 'nist'])
+    parser.add_argument('-d', '--dump', action='store_true')
     parser.add_argument('-o', '--output', type=argparse.FileType('w'))
     args = parser.parse_args()
 
@@ -392,13 +477,13 @@ def main():
 
     if args.type == 'mct':
         data = parse_mct(args.input)
-    elif args.type == 'kat':
-        data = parse_kat(args.input)
+    elif args.type == 'nist':
+        data = parse_nist(args.input)
 
-    # if not args.output:
-    #     json.dump(data, sys.stdout)
-    # else:
-    #     json.dump(data, args.output)
+    if args.output:
+        json.dump(data, args.output)
+    elif args.dump:
+        json.dump(data, sys.stdout)
 
 
 if __name__ == '__main__':
