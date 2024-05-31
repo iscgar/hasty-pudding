@@ -257,21 +257,23 @@ int hpc_encrypt(struct HpcState *state, const uint8_t *plaintext, uint8_t *o_cip
 
         for (size_t i = 0; i < word_limit; )
         {
-            s[i / sizeof(uint64_t)] = plaintext[i++];
+            s[i / sizeof(uint64_t)] = plaintext[i];
+            ++i;
 
-            for (size_t j = 1, sh = CHAR_BIT; j < sizeof(uint64_t) && i < word_limit; ++j, sh += CHAR_BIT)
+            for (size_t j = 1, sh = CHAR_BIT; j < sizeof(uint64_t) && i < word_limit; ++j, sh += CHAR_BIT, ++i)
             {
-                s[i / sizeof(uint64_t)] |= ((uint64_t)plaintext[i++]) << sh;
+                s[i / sizeof(uint64_t)] |= ((uint64_t)plaintext[i]) << sh;
             }
         }
 
         for (size_t i = word_limit; i < byte_limit; )
         {
-            s[l64 - 1] = plaintext[i++];
+            s[l64 - 1] = plaintext[i];
+            ++i;
 
-            for (size_t j = 1, sh = CHAR_BIT; j < sizeof(uint64_t) && i < byte_limit; ++j, sh += CHAR_BIT)
+            for (size_t j = 1, sh = CHAR_BIT; j < sizeof(uint64_t) && i < byte_limit; ++j, sh += CHAR_BIT, ++i)
             {
-                s[l64 - 1] |= ((uint64_t)plaintext[i++]) << sh;
+                s[l64 - 1] |= ((uint64_t)plaintext[i]) << sh;
             }
         }
 
@@ -408,21 +410,23 @@ int hpc_decrypt(struct HpcState *state, const uint8_t *ciphertext, uint8_t *o_pl
 
         for (size_t i = 0; i < word_limit; )
         {
-            s[i / sizeof(uint64_t)] = ciphertext[i++];
+            s[i / sizeof(uint64_t)] = ciphertext[i];
+            ++i;
 
-            for (size_t j = 1, sh = CHAR_BIT; j < sizeof(uint64_t) && i < word_limit; ++j, sh += CHAR_BIT)
+            for (size_t j = 1, sh = CHAR_BIT; j < sizeof(uint64_t) && i < word_limit; ++j, sh += CHAR_BIT, ++i)
             {
-                s[i / sizeof(uint64_t)] |= ((uint64_t)ciphertext[i++]) << sh;
+                s[i / sizeof(uint64_t)] |= ((uint64_t)ciphertext[i]) << sh;
             }
         }
 
         for (size_t i = word_limit; i < byte_limit; )
         {
-            s[l64 - 1] = ciphertext[i++];
+            s[l64 - 1] = ciphertext[i];
+            ++i;
 
-            for (size_t j = 1, sh = CHAR_BIT; j < sizeof(uint64_t) && i < byte_limit; ++j, sh += CHAR_BIT)
+            for (size_t j = 1, sh = CHAR_BIT; j < sizeof(uint64_t) && i < byte_limit; ++j, sh += CHAR_BIT, ++i)
             {
-                s[l64 - 1] |= ((uint64_t)ciphertext[i++]) << sh;
+                s[l64 - 1] |= ((uint64_t)ciphertext[i]) << sh;
             }
         }
 
