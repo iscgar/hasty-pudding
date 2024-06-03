@@ -74,13 +74,13 @@ extern int hpc_init(struct HpcState *state, const uint8_t *key, size_t key_bit_s
 /**
  * Initialises an HPC instance with a specific key and backup rounds.
  *
- * @param state         A pointer to HPC the state to initialise
+ * @param state         A pointer to an allocated HPC state to initialise
  * @param key           A pointer to the key material to initialise the state with
  * @param key_bit_size  The size of the key material in bits
  * @param backup        A pointer to an array describing how many rounds to add to
  *                      the key schedule and the sub-ciphers. The first member sets
  *                      the amount of additional rounds for key expansion, and the
- *                      rest of the member specify how many iteration to do for each
+ *                      rest of the members specify how many iteration to add for each
  *                      sub-cipher using the respective `HPC_CIPHER_ID_*` indices
  * @param backup_size   The number of members in `backup` (must be `HPC_BACKUP_SIZE`)
  *
@@ -118,7 +118,8 @@ extern int hpc_encrypt(struct HpcState *state, const uint8_t *plaintext, uint8_t
  * @param tweak             An optional tweak to change the decryption behaviour without
  *                          changing the key (AKA "spice", must be the same tweak that was
  *                          provided to the encryption function)
- * @param tweak_bit_size    The size of the tweak in bits (must be less or equal to `HPC_TWEAK_BIT_SIZE`)
+ * @param tweak_bit_size    The size of the tweak in bits (must be less than or
+ *                          equal to `HPC_TWEAK_BIT_SIZE`)
  *
  * @return                  True if the data was decrypted successfully.
  *                          False otherwise.
